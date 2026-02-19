@@ -1,6 +1,30 @@
 window.Auth = (() => {
   const el = (id) => document.getElementById(id);
 
+  function getBasePath() {
+    // Supports GitHub Pages project sites (https://user.github.io/repo/...)
+    // and user sites (https://user.github.io/...).
+    // Returns a path that ends with "/".
+    const p = window.location.pathname;
+
+    // If on a feature page: /<base>/pages/<file>.html
+    const idxPages = p.indexOf("/pages/");
+    if (idxPages !== -1) return p.slice(0, idxPages + 1);
+
+    // If on index.html: /<base>/index.html
+    if (p.endsWith("/index.html")) return p.slice(0, p.length - "index.html".length);
+
+    // If on root dir (rare): /<base>/
+    if (p.endsWith("/")) return p;
+
+    // Fallback: strip filename
+    return p.replace(/[^/]+$/, "");
+  }
+
+  function indexUrl() {
+    return window.location.origin + getBasePath() + "index.html";
+  }
+
   async function getSession() {
     const { data, error } = await Supa.client.auth.getSession();
     if (error) return { session: null, error };
@@ -17,8 +41,7 @@ window.Auth = (() => {
     const email = prompt("Email to sign in:");
     if (!email) return;
 
-    // Keep redirects on same origin.
-    const redirectTo = window.location.origin + "/index.html";
+    const redirectTo = indexUrl();
 
     const { error } = await Supa.client.auth.signInWithOtp({
       email,
@@ -32,7 +55,7 @@ window.Auth = (() => {
   async function signOut() {
     const { error } = await Supa.client.auth.signOut();
     if (error) UI.toast(error.message);
-    window.location.href = window.location.origin + "/index.html";
+    window.location.href = indexUrl();
   }
 
   async function initAuthUI() {
@@ -77,10 +100,15 @@ window.Auth = (() => {
   }
 
   async function requireSessionOrRedirect() {
-    const { session } = await getSession();
-    if (session?.user) return true;
+    // Sometimes session restoration can lag right after navigation.
+    // Try a couple of times before redirecting.
+    for (let i = 0; i < 3; i++) {
+      const { session } = await getSession();
+      if (session?.user) return true;
+      await new Promise(r => setTimeout(r, 150));
+    }
 
-    window.location.href = "../index.html";
+    window.location.href = indexUrl();
     return false;
   }
 
