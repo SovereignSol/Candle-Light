@@ -2,22 +2,11 @@ window.Auth = (() => {
   const el = (id) => document.getElementById(id);
 
   function getBasePath() {
-    // Supports GitHub Pages project sites (https://user.github.io/repo/...)
-    // and user sites (https://user.github.io/...).
-    // Returns a path that ends with "/".
     const p = window.location.pathname;
-
-    // If on a feature page: /<base>/pages/<file>.html
     const idxPages = p.indexOf("/pages/");
     if (idxPages !== -1) return p.slice(0, idxPages + 1);
-
-    // If on index.html: /<base>/index.html
     if (p.endsWith("/index.html")) return p.slice(0, p.length - "index.html".length);
-
-    // If on root dir (rare): /<base>/
     if (p.endsWith("/")) return p;
-
-    // Fallback: strip filename
     return p.replace(/[^/]+$/, "");
   }
 
@@ -37,19 +26,32 @@ window.Auth = (() => {
     return data?.user?.id || null;
   }
 
-  async function signInPrompt() {
-    const email = prompt("Email to sign in:");
+  async function signInWithPasswordPrompt() {
+    const email = prompt("Email:");
     if (!email) return;
 
-    const redirectTo = indexUrl();
+    const password = prompt("Password:");
+    if (!password) return;
 
-    const { error } = await Supa.client.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirectTo }
-    });
+    const { error } = await Supa.client.auth.signInWithPassword({ email, password });
 
-    if (error) UI.toast(error.message);
-    else UI.toast("Check your email for the sign-in link.");
+    if (!error) {
+      UI.toast("Signed in.");
+      return;
+    }
+
+    // If the user doesn't exist yet, offer to sign up.
+    const wantsSignup = confirm(
+      "Sign-in failed. If this is your first time, click OK to create the account with this email/password."
+    );
+    if (!wantsSignup) {
+      UI.toast(error.message);
+      return;
+    }
+
+    const { error: signupError } = await Supa.client.auth.signUp({ email, password });
+    if (signupError) UI.toast(signupError.message);
+    else UI.toast("Account created. You are signed in.");
   }
 
   async function signOut() {
@@ -62,7 +64,7 @@ window.Auth = (() => {
     const btnIn = el("btnSignIn");
     const btnOut = el("btnSignOut");
 
-    if (btnIn) btnIn.addEventListener("click", signInPrompt);
+    if (btnIn) btnIn.addEventListener("click", signInWithPasswordPrompt);
     if (btnOut) btnOut.addEventListener("click", signOut);
 
     Supa.client.auth.onAuthStateChange(async () => {
@@ -100,14 +102,11 @@ window.Auth = (() => {
   }
 
   async function requireSessionOrRedirect() {
-    // Sometimes session restoration can lag right after navigation.
-    // Try a couple of times before redirecting.
     for (let i = 0; i < 3; i++) {
       const { session } = await getSession();
       if (session?.user) return true;
-      await new Promise(r => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, 150));
     }
-
     window.location.href = indexUrl();
     return false;
   }
