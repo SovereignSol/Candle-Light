@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sticker Book</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="link" href="../index.html">← Menu</a>
+    <div class="spacer"></div>
+    <span id="authStatus" class="muted"></span>
+    <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Sticker Book</h1>
+      <p class="muted">Owners can add and manage stickers. Members can view.</p>
+
+      <div class="grid-2">
+        <div>
+          <label class="label">Label</label>
+          <input id="stLabel" class="input" placeholder="Gold Star" />
+        </div>
+        <div>
+          <label class="label">Emoji (optional)</label>
+          <input id="stEmoji" class="input" placeholder="⭐" />
+        </div>
+        <div>
+          <label class="label">Image path (optional)</label>
+          <input id="stImage" class="input" placeholder="stickers/yourfile.png" />
+        </div>
+        <div>
+          <label class="label">Sort order</label>
+          <input id="stSort" class="input" placeholder="0" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="btnAddSticker" class="btn btn-primary">Add sticker</button>
+        <span class="muted small">If you get an RLS error, your user is not an owner in <code>app_members</code>.</span>
+      </div>
+
+      <hr class="sep" />
+
+      <div id="stList" class="list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    const Stickers = (() => {
+      const el = (id) => document.getElementById(id);
+
+      function toInt(v, def = 0) {
+        const n = parseInt((v || "").trim(), 10);
+        return Number.isFinite(n) ? n : def;
+      }
+
+      async function load() {
+        const { data, error } = await Supa.client
+          .from("stickers")
+          .select("*")
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
+
+        if (error) return UI.toast(error.message);
+        render(data || []);
+      }
+
+      function render(items) {
+        const root = el("stList");
+        root.innerHTML = "";
+
+        if (!items.length) {
+          root.innerHTML = `<div class="muted">No stickers yet.</div>`;
+          return;
+        }
+
+        for (const it of items) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "pr-left";
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = `${it.emoji ? it.emoji + " " : ""}${it.label}`;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = `Active: ${it.is_active ? "yes" : "no"} • sort: ${it.sort_order} ${it.image_path ? "• image: " + it.image_path : ""}`;
+
+          left.appendChild(title);
+          left.appendChild(meta);
+
+          const right = document.createElement("div");
+          right.className = "pr-actions";
+
+          const btnToggle = document.createElement("button");
+          btnToggle.className = "btn btn-ghost";
+          btnToggle.textContent = it.is_active ? "Deactivate" : "Activate";
+          btnToggle.onclick = () => toggleActive(it.id, !it.is_active);
+
+          const btnEdit = document.createElement("button");
+          btnEdit.className = "btn btn-primary";
+          btnEdit.textContent = "Edit";
+          btnEdit.onclick = () => editSticker(it);
+
+          const btnDelete = document.createElement("button");
+          btnDelete.className = "btn btn-danger";
+          btnDelete.textContent = "Delete";
+          btnDelete.onclick = () => del(it.id);
+
+          right.appendChild(btnToggle);
+          right.appendChild(btnEdit);
+          right.appendChild(btnDelete);
+
+          row.appendChild(left);
+          row.appendChild(right);
+          root.appendChild(row);
+        }
+      }
+
+      async function add() {
+        const label = (el("stLabel").value || "").trim();
+        if (!label) return UI.toast("Label is required.");
+
+        const emoji = (el("stEmoji").value || "").trim() || null;
+        const image_path = (el("stImage").value || "").trim() || null;
+        const sort_order = toInt(el("stSort").value, 0);
+
+        const { error } = await Supa.client
+          .from("stickers")
+          .insert({ label, emoji, image_path, sort_order, is_active: true });
+
+        if (error) return UI.toast(error.message);
+
+        el("stLabel").value = "";
+        el("stEmoji").value = "";
+        el("stImage").value = "";
+        el("stSort").value = "";
+      }
+
+      async function toggleActive(id, is_active) {
+        const { error } = await Supa.client
+          .from("stickers")
+          .update({ is_active })
+          .eq("id", id);
+
+        if (error) UI.toast(error.message);
+      }
+
+      async function editSticker(it) {
+        const newLabel = prompt("Label:", it.label);
+        if (newLabel === null) return;
+
+        const newEmoji = prompt("Emoji (optional):", it.emoji || "");
+        if (newEmoji === null) return;
+
+        const newImage = prompt("Image path (optional):", it.image_path || "");
+        if (newImage === null) return;
+
+        const newSort = prompt("Sort order:", String(it.sort_order ?? 0));
+        if (newSort === null) return;
+
+        const payload = {
+          label: (newLabel || "").trim() || it.label,
+          emoji: (newEmoji || "").trim() || null,
+          image_path: (newImage || "").trim() || null,
+          sort_order: toInt(newSort, it.sort_order ?? 0)
+        };
+
+        const { error } = await Supa.client
+          .from("stickers")
+          .update(payload)
+          .eq("id", it.id);
+
+        if (error) UI.toast(error.message);
+      }
+
+      async function del(id) {
+        if (!confirm("Delete this sticker?")) return;
+
+        const { error } = await Supa.client
+          .from("stickers")
+          .delete()
+          .eq("id", id);
+
+        if (error) UI.toast(error.message);
+      }
+
+      function subscribeRealtime() {
+        const channel = Supa.client.channel("rt-stickers");
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "stickers" },
+          () => load()
+        );
+        channel.subscribe();
+      }
+
+      function wire() {
+        el("btnAddSticker").addEventListener("click", add);
+      }
+
+      return { load, wire, subscribeRealtime };
+    })();
+
+    (async () => {
+      const ok = await Auth.requireSessionOrRedirect();
+      if (!ok) return;
+
+      await Auth.initHeaderUI();
+      Stickers.wire();
+      await Stickers.load();
+      Stickers.subscribeRealtime();
+    })();
+  </script>
+</body>
+</html>

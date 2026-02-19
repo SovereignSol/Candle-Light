@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Allowance</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="link" href="../index.html">← Menu</a>
+    <div class="spacer"></div>
+    <span id="authStatus" class="muted"></span>
+    <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Allowance</h1>
+      <p class="muted">Balances and ledger. Owners can award allowance with optional sticker and message.</p>
+
+      <div class="kpi" id="balances"></div>
+
+      <hr class="sep" />
+
+      <h2>Award allowance (owner)</h2>
+
+      <div class="grid-2">
+        <div>
+          <label class="label">Recipient</label>
+          <select id="awUser" class="select"></select>
+        </div>
+
+        <div>
+          <label class="label">Amount</label>
+          <input id="awAmount" class="input" placeholder="5.00" inputmode="decimal" />
+        </div>
+
+        <div>
+          <label class="label">Sticker (optional)</label>
+          <select id="awSticker" class="select"></select>
+        </div>
+
+        <div>
+          <label class="label">Reason</label>
+          <input id="awReason" class="input" placeholder="Good job" />
+        </div>
+      </div>
+
+      <label class="label">Message (optional)</label>
+      <textarea id="awMessage" class="textarea" placeholder="Nice work today!"></textarea>
+
+      <div class="row">
+        <button id="btnAward" class="btn btn-primary">Award</button>
+        <span class="muted small">If you get an RLS error, ensure your role is <code>owner</code> in <code>app_members</code>.</span>
+      </div>
+
+      <hr class="sep" />
+
+      <h2>Ledger</h2>
+      <div id="ledger" class="list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    const Allowance = (() => {
+      const el = (id) => document.getElementById(id);
+
+      function fmt(n) {
+        if (n === null || n === undefined) return "";
+        const num = Number(n);
+        if (!Number.isFinite(num)) return String(n);
+        return num.toFixed(2);
+      }
+
+      async function loadBalances() {
+        const { data, error } = await Supa.client
+          .from("allowance_balances")
+          .select("*")
+          .order("user_id", { ascending: true });
+
+        if (error) return UI.toast(error.message);
+
+        const root = el("balances");
+        root.innerHTML = "";
+
+        if (!data || !data.length) {
+          root.innerHTML = `<div class="muted">No balances yet.</div>`;
+          return;
+        }
+
+        for (const b of data) {
+          const box = document.createElement("div");
+          box.className = "box";
+          box.innerHTML = `
+            <div class="muted small">User</div>
+            <div class="small">${b.user_id}</div>
+            <div class="muted small" style="margin-top:10px;">Balance</div>
+            <div class="value">$${fmt(b.balance)}</div>
+          `;
+          root.appendChild(box);
+        }
+      }
+
+      async function loadLedger() {
+        const { data, error } = await Supa.client
+          .from("allowance_ledger")
+          .select("id,user_id,amount,reason,message,sticker_id,created_by,created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        if (error) return UI.toast(error.message);
+
+        const root = el("ledger");
+        root.innerHTML = "";
+
+        if (!data || !data.length) {
+          root.innerHTML = `<div class="muted">No ledger entries yet.</div>`;
+          return;
+        }
+
+        for (const it of data) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "pr-left";
+
+          const t = document.createElement("div");
+          t.className = "pr-title";
+          t.textContent = `${it.reason || "Ledger entry"} (${it.amount >= 0 ? "+" : ""}${fmt(it.amount)})`;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = `user: ${it.user_id} • by: ${it.created_by} • ${new Date(it.created_at).toLocaleString()}`;
+
+          const msg = document.createElement("div");
+          msg.className = "muted small";
+          msg.textContent = it.message ? `msg: ${it.message}` : "";
+
+          left.appendChild(t);
+          left.appendChild(meta);
+          if (it.message) left.appendChild(msg);
+
+          row.appendChild(left);
+          root.appendChild(row);
+        }
+      }
+
+      async function loadMembersIntoSelect() {
+        const sel = el("awUser");
+        sel.innerHTML = "";
+
+        const { data, error } = await Supa.client
+          .from("app_members")
+          .select("user_id,role")
+          .order("role", { ascending: true });
+
+        if (error) return UI.toast(error.message);
+
+        const users = data || [];
+        for (const u of users) {
+          const opt = document.createElement("option");
+          opt.value = u.user_id;
+          opt.textContent = `${u.user_id} (${u.role})`;
+          sel.appendChild(opt);
+        }
+      }
+
+      async function loadStickersIntoSelect() {
+        const sel = el("awSticker");
+        sel.innerHTML = "";
+
+        const optNone = document.createElement("option");
+        optNone.value = "";
+        optNone.textContent = "No sticker";
+        sel.appendChild(optNone);
+
+        const { data, error } = await Supa.client
+          .from("stickers")
+          .select("id,label,emoji,is_active,sort_order")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
+
+        if (error) return UI.toast(error.message);
+
+        for (const s of (data || [])) {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = `${s.emoji ? s.emoji + " " : ""}${s.label}`;
+          sel.appendChild(opt);
+        }
+      }
+
+      function toNumberOrNull(v) {
+        const s = (v || "").trim();
+        if (!s) return null;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      async function award() {
+        const created_by = await Auth.getUserId();
+        if (!created_by) return UI.toast("Not signed in.");
+
+        const user_id = el("awUser").value;
+        const amount = toNumberOrNull(el("awAmount").value);
+        if (amount === null) return UI.toast("Amount must be a number.");
+
+        const reason = (el("awReason").value || "").trim() || "Allowance";
+        const message = (el("awMessage").value || "").trim() || null;
+        const sticker_id = el("awSticker").value || null;
+
+        const payload = { user_id, amount, reason, message, sticker_id, created_by };
+
+        const { error } = await Supa.client
+          .from("allowance_ledger")
+          .insert(payload);
+
+        if (error) return UI.toast(error.message);
+
+        el("awAmount").value = "";
+        el("awReason").value = "";
+        el("awMessage").value = "";
+        el("awSticker").value = "";
+      }
+
+      function subscribeRealtime() {
+        const ch1 = Supa.client.channel("rt-allowance-ledger");
+        ch1.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "allowance_ledger" },
+          async () => {
+            await loadBalances();
+            await loadLedger();
+          }
+        );
+        ch1.subscribe();
+
+        const ch2 = Supa.client.channel("rt-stickers-allowance");
+        ch2.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "stickers" },
+          () => loadStickersIntoSelect()
+        );
+        ch2.subscribe();
+      }
+
+      function wire() {
+        el("btnAward").addEventListener("click", award);
+      }
+
+      return {
+        wire,
+        subscribeRealtime,
+        loadBalances,
+        loadLedger,
+        loadMembersIntoSelect,
+        loadStickersIntoSelect
+      };
+    })();
+
+    (async () => {
+      const ok = await Auth.requireSessionOrRedirect();
+      if (!ok) return;
+
+      await Auth.initHeaderUI();
+
+      Allowance.wire();
+      await Allowance.loadBalances();
+      await Allowance.loadLedger();
+      await Allowance.loadMembersIntoSelect();
+      await Allowance.loadStickersIntoSelect();
+      Allowance.subscribeRealtime();
+    })();
+  </script>
+</body>
+</html>
