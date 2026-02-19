@@ -20,7 +20,7 @@
   <main class="container">
     <section class="card">
       <h1>Menu</h1>
-      <p class="muted">Two blocks for now. Each feature is a separate page.</p>
+      <p class="muted">Each feature is its own page.</p>
 
       <div class="grid-2">
         <a class="tile" href="./pages/grocery.html">
@@ -31,6 +31,16 @@
         <a class="tile" href="./pages/purchase_requests.html">
           <div class="tile-title">Purchase Requests</div>
           <div class="tile-sub">Request and track purchases</div>
+        </a>
+
+        <a class="tile" href="./pages/allowance.html">
+          <div class="tile-title">Allowance</div>
+          <div class="tile-sub">Balances, ledger, awards</div>
+        </a>
+
+        <a class="tile" href="./pages/stickers.html">
+          <div class="tile-title">Sticker Book</div>
+          <div class="tile-sub">Manage sticker options</div>
         </a>
       </div>
     </section>
@@ -51,7 +61,6 @@
   <script src="./js/ui.js"></script>
 
   <script>
-    // Minimal SW registration (no fetch caching by default).
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
     }
