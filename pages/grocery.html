@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grocery List</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="link" href="../index.html">← Menu</a>
+    <div class="spacer"></div>
+    <span id="authStatus" class="muted"></span>
+    <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Grocery List</h1>
+
+      <div class="row">
+        <input id="itemName" class="input" placeholder="Add an item..." autocomplete="off" />
+        <button id="btnAdd" class="btn btn-primary">Add</button>
+      </div>
+
+      <div id="list" class="list"></div>
+
+      <div class="muted small">
+        Live updates require you to be signed in and listed in <code>app_members</code>.
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    const Grocery = (() => {
+      const elList = () => document.getElementById("list");
+      const elName = () => document.getElementById("itemName");
+
+      async function load() {
+        const { data, error } = await Supa.client
+          .from("grocery_items")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) return UI.toast(error.message);
+        render(data || []);
+      }
+
+      function render(items) {
+        const root = elList();
+        root.innerHTML = "";
+
+        if (!items.length) {
+          root.innerHTML = `<div class="muted">No items yet.</div>`;
+          return;
+        }
+
+        for (const it of items) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "list-left";
+
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = !!it.checked;
+          cb.addEventListener("change", async () => {
+            const { error } = await Supa.client
+              .from("grocery_items")
+              .update({ checked: cb.checked })
+              .eq("id", it.id);
+
+            if (error) UI.toast(error.message);
+          });
+
+          const name = document.createElement("div");
+          name.textContent = it.name;
+          name.className = it.checked ? "strike" : "";
+
+          left.appendChild(cb);
+          left.appendChild(name);
+
+          const del = document.createElement("button");
+          del.className = "btn btn-danger";
+          del.textContent = "Delete";
+          del.addEventListener("click", async () => {
+            const { error } = await Supa.client
+              .from("grocery_items")
+              .delete()
+              .eq("id", it.id);
+
+            if (error) UI.toast(error.message);
+          });
+
+          row.appendChild(left);
+          row.appendChild(del);
+          root.appendChild(row);
+        }
+      }
+
+      async function add() {
+        const name = (elName().value || "").trim();
+        if (!name) return;
+
+        const userId = await Auth.getUserId();
+        if (!userId) return UI.toast("Not signed in.");
+
+        const { error } = await Supa.client
+          .from("grocery_items")
+          .insert({ name, checked: false, created_by: userId });
+
+        if (error) return UI.toast(error.message);
+        elName().value = "";
+      }
+
+      function wire() {
+        document.getElementById("btnAdd").addEventListener("click", add);
+        elName().addEventListener("keydown", (e) => {
+          if (e.key === "Enter") add();
+        });
+      }
+
+      function subscribeRealtime() {
+        const channel = Supa.client.channel("rt-grocery");
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "grocery_items" },
+          () => load()
+        );
+        channel.subscribe();
+      }
+
+      return { load, wire, subscribeRealtime };
+    })();
+
+    (async () => {
+      const ok = await Auth.requireSessionOrRedirect();
+      if (!ok) return;
+
+      await Auth.initHeaderUI();
+      Grocery.wire();
+      await Grocery.load();
+      Grocery.subscribeRealtime();
+    })();
+  </script>
+</body>
+</html>

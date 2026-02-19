@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Purchase Requests</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="link" href="../index.html">← Menu</a>
+    <div class="spacer"></div>
+    <span id="authStatus" class="muted"></span>
+    <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Purchase Requests</h1>
+
+      <div class="grid-2">
+        <div>
+          <label class="label">Title</label>
+          <input id="prTitle" class="input" placeholder="What do you want?" />
+        </div>
+        <div>
+          <label class="label">Link (optional)</label>
+          <input id="prLink" class="input" placeholder="https://..." />
+        </div>
+        <div>
+          <label class="label">Cost</label>
+          <input id="prCost" class="input" placeholder="19.99" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="label">Shipping (optional)</label>
+          <input id="prShip" class="input" placeholder="0.00" inputmode="decimal" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="btnSubmit" class="btn btn-primary">Submit</button>
+      </div>
+
+      <hr class="sep" />
+
+      <div id="prList" class="list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    const PR = (() => {
+      const el = (id) => document.getElementById(id);
+
+      function toNumberOrNull(v) {
+        const s = (v || "").trim();
+        if (!s) return null;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      async function load() {
+        const { data, error } = await Supa.client
+          .from("purchase_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) return UI.toast(error.message);
+        render(data || []);
+      }
+
+      function render(items) {
+        const root = el("prList");
+        root.innerHTML = "";
+
+        if (!items.length) {
+          root.innerHTML = `<div class="muted">No requests yet.</div>`;
+          return;
+        }
+
+        for (const it of items) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "pr-left";
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = it.title;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          const cost = it.cost ?? "";
+          const ship = it.shipping_cost ?? "";
+          meta.textContent = `Status: ${it.status} • Cost: ${cost}${ship !== "" ? " • Shipping: " + ship : ""}`;
+
+          const link = document.createElement("a");
+          link.className = "link small";
+          link.href = it.link || "#";
+          link.textContent = it.link ? "Open link" : "";
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          if (!it.link) link.style.display = "none";
+
+          left.appendChild(title);
+          left.appendChild(meta);
+          left.appendChild(link);
+
+          const right = document.createElement("div");
+          right.className = "pr-actions";
+
+          const btnWishlist = document.createElement("button");
+          btnWishlist.className = "btn btn-ghost";
+          btnWishlist.textContent = "Wishlist";
+          btnWishlist.onclick = () => setStatus(it.id, "wishlist");
+
+          const btnApprove = document.createElement("button");
+          btnApprove.className = "btn btn-primary";
+          btnApprove.textContent = "Approve";
+          btnApprove.onclick = () => setStatus(it.id, "approved");
+
+          const btnDeny = document.createElement("button");
+          btnDeny.className = "btn btn-danger";
+          btnDeny.textContent = "Deny";
+          btnDeny.onclick = () => setStatus(it.id, "denied");
+
+          right.appendChild(btnWishlist);
+          right.appendChild(btnApprove);
+          right.appendChild(btnDeny);
+
+          row.appendChild(left);
+          row.appendChild(right);
+          root.appendChild(row);
+        }
+      }
+
+      async function setStatus(id, status) {
+        const { error } = await Supa.client
+          .from("purchase_requests")
+          .update({ status })
+          .eq("id", id);
+
+        if (error) UI.toast(error.message);
+      }
+
+      async function submit() {
+        const title = (el("prTitle").value || "").trim();
+        if (!title) return UI.toast("Title is required.");
+
+        const userId = await Auth.getUserId();
+        if (!userId) return UI.toast("Not signed in.");
+
+        const link = (el("prLink").value || "").trim() || null;
+        const cost = toNumberOrNull(el("prCost").value);
+        const shipping_cost = toNumberOrNull(el("prShip").value);
+
+        const payload = {
+          title,
+          link,
+          cost,
+          shipping_cost,
+          status: "pending",
+          created_by: userId
+        };
+
+        const { error } = await Supa.client
+          .from("purchase_requests")
+          .insert(payload);
+
+        if (error) return UI.toast(error.message);
+
+        el("prTitle").value = "";
+        el("prLink").value = "";
+        el("prCost").value = "";
+        el("prShip").value = "";
+      }
+
+      function wire() {
+        el("btnSubmit").addEventListener("click", submit);
+      }
+
+      function subscribeRealtime() {
+        const channel = Supa.client.channel("rt-pr");
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "purchase_requests" },
+          () => load()
+        );
+        channel.subscribe();
+      }
+
+      return { load, wire, subscribeRealtime };
+    })();
+
+    (async () => {
+      const ok = await Auth.requireSessionOrRedirect();
+      if (!ok) return;
+
+      await Auth.initHeaderUI();
+      PR.wire();
+      await PR.load();
+      PR.subscribeRealtime();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lightwell Hub</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Lightwell Hub</div>
+    <div class="authbar">
+      <span id="authStatus" class="muted">Checking session...</span>
+      <button id="btnSignIn" class="btn btn-primary hidden">Sign in</button>
+      <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Menu</h1>
+      <p class="muted">Two blocks for now. Each feature is a separate page.</p>
+
+      <div class="grid-2">
+        <a class="tile" href="./pages/grocery.html">
+          <div class="tile-title">Grocery List</div>
+          <div class="tile-sub">Shared, live list</div>
+        </a>
+
+        <a class="tile" href="./pages/purchase_requests.html">
+          <div class="tile-title">Purchase Requests</div>
+          <div class="tile-sub">Request and track purchases</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Notes</h2>
+      <ul class="muted">
+        <li>This app requires login.</li>
+        <li>There is no household join, everything is “one shared workspace”.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/supabaseClient.js"></script>
+  <script src="./js/auth.js"></script>
+  <script src="./js/ui.js"></script>
+
+  <script>
+    // Minimal SW registration (no fetch caching by default).
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+
+    (async () => {
+      await Auth.initAuthUI();
+    })();
+  </script>
+</body>
+</html>
