@@ -34,6 +34,7 @@
       </div>
     </section>
 
+    <!-- Purchase Requests -->
     <section class="card tab active" id="prTab">
       <h2>Purchase Requests</h2>
 
@@ -63,6 +64,7 @@
       <div id="prList" class="list"></div>
     </section>
 
+    <!-- Allowance -->
     <section class="card tab" id="allowTab">
       <h2>Allowance</h2>
       <p class="muted small">Balances come from <code>allowance_balances</code>. Ledger writes are owner-only.</p>
@@ -108,36 +110,13 @@
       <div id="ledger" class="list"></div>
     </section>
 
+    <!-- Stickers -->
     <section class="card tab" id="stTab">
       <h2>Sticker Book</h2>
-      <p class="muted small">Owners can add and manage stickers, including uploading an image from your device.</p>
-
-      <div class="grid-2">
-        <div>
-          <label class="label">Label</label>
-          <input id="stLabel" class="input" placeholder="Gold Star" />
-        </div>
-
-        <div>
-          <label class="label">Emoji (optional)</label>
-          <input id="stEmoji" class="input" placeholder="⭐" />
-        </div>
-
-        <div>
-          <label class="label">Sticker image (optional)</label>
-          <input id="stFile" class="input" type="file" accept="image/*" />
-          <div class="muted small">Uploads to Supabase Storage bucket: <code>stickers</code></div>
-        </div>
-
-        <div>
-          <label class="label">Sort order</label>
-          <input id="stSort" class="input" placeholder="0" inputmode="numeric" />
-        </div>
-      </div>
-
-      <div class="row">
-        <button id="btnAddSticker" class="btn btn-primary">Add sticker</button>
-      </div>
+      <p class="muted small">
+        Stickers are managed in Supabase (Table Editor -> <code>stickers</code>).
+        Optional images are stored in the Storage bucket <code>stickers</code>.
+      </p>
 
       <div id="stList" class="list"></div>
     </section>
@@ -169,19 +148,16 @@
         const n = Number(s);
         return Number.isFinite(n) ? n : null;
       }
-      function toInt(v, def = 0) {
-        const n = parseInt((v || "").trim(), 10);
-        return Number.isFinite(n) ? n : def;
-      }
       function fmt(n) {
         if (n === null || n === undefined) return "";
         const num = Number(n);
         if (!Number.isFinite(num)) return String(n);
         return num.toFixed(2);
       }
-      return { toNumberOrNull, toInt, fmt };
+      return { toNumberOrNull, fmt };
     })();
 
+    // Purchase Requests
     const PR = (() => {
       const el = (id) => document.getElementById(id);
 
@@ -308,6 +284,7 @@
       return { load, wire, subscribeRealtime };
     })();
 
+    // Allowance
     const Allowance = (() => {
       const el = (id) => document.getElementById(id);
 
@@ -415,7 +392,7 @@
 
         const { data, error } = await Supa.client
           .from("stickers")
-          .select("id,label,emoji,is_active,sort_order")
+          .select("id,label,is_active,sort_order")
           .eq("is_active", true)
           .order("sort_order", { ascending: true });
 
@@ -424,7 +401,7 @@
         for (const s of (data || [])) {
           const opt = document.createElement("option");
           opt.value = s.id;
-          opt.textContent = `${s.emoji ? s.emoji + " " : ""}${s.label}`;
+          opt.textContent = s.label;
           sel.appendChild(opt);
         }
       }
@@ -475,14 +452,9 @@
       return { loadBalances, loadLedger, loadMembersIntoSelect, loadStickersIntoSelect, wire, subscribeRealtime };
     })();
 
+    // Stickers list (read-only, managed in Supabase)
     const Stickers = (() => {
-      const el = (id) => document.getElementById(id);
       const BUCKET = "stickers";
-
-      function extFromFileName(name) {
-        const m = String(name || "").match(/\.([a-zA-Z0-9]+)$/);
-        return m ? m[1].toLowerCase() : "png";
-      }
 
       function publicUrl(path) {
         if (!path) return null;
@@ -490,30 +462,10 @@
         return data?.publicUrl || null;
       }
 
-      async function uploadSelectedFile() {
-        const file = el("stFile")?.files?.[0];
-        if (!file) return null;
-
-        const id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
-        const ext = extFromFileName(file.name);
-        const objectPath = `${id}.${ext}`;
-
-        const { error } = await Supa.client.storage.from(BUCKET).upload(objectPath, file, {
-          upsert: true,
-          contentType: file.type || "image/*"
-        });
-
-        if (error) {
-          UI.toast(error.message);
-          return null;
-        }
-        return objectPath;
-      }
-
       async function load() {
         const { data, error } = await Supa.client
           .from("stickers")
-          .select("*")
+          .select("id,label,image_path,is_active,sort_order,created_at")
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false });
 
@@ -526,7 +478,7 @@
         root.innerHTML = "";
 
         if (!items.length) {
-          root.innerHTML = `<div class="muted">No stickers yet.</div>`;
+          root.innerHTML = `<div class="muted">No stickers yet. Add rows in Supabase -> Table Editor -> stickers.</div>`;
           return;
         }
 
@@ -553,7 +505,7 @@
 
           const title = document.createElement("div");
           title.className = "pr-title";
-          title.textContent = `${it.emoji ? it.emoji + " " : ""}${it.label}`;
+          title.textContent = it.label;
           top.appendChild(title);
 
           const meta = document.createElement("div");
@@ -563,119 +515,9 @@
           left.appendChild(top);
           left.appendChild(meta);
 
-          const right = document.createElement("div");
-          right.className = "pr-actions";
-
-          const btnToggle = document.createElement("button");
-          btnToggle.className = "btn btn-ghost";
-          btnToggle.textContent = it.is_active ? "Deactivate" : "Activate";
-          btnToggle.onclick = () => toggleActive(it.id, !it.is_active);
-
-          const btnReplace = document.createElement("button");
-          btnReplace.className = "btn btn-primary";
-          btnReplace.textContent = "Replace image";
-          btnReplace.onclick = () => replaceImage(it);
-
-          const btnEdit = document.createElement("button");
-          btnEdit.className = "btn btn-ghost";
-          btnEdit.textContent = "Edit text";
-          btnEdit.onclick = () => editSticker(it);
-
-          const btnDelete = document.createElement("button");
-          btnDelete.className = "btn btn-danger";
-          btnDelete.textContent = "Delete";
-          btnDelete.onclick = () => del(it.id);
-
-          right.appendChild(btnToggle);
-          right.appendChild(btnReplace);
-          right.appendChild(btnEdit);
-          right.appendChild(btnDelete);
-
           row.appendChild(left);
-          row.appendChild(right);
           root.appendChild(row);
         }
-      }
-
-      async function add() {
-        const label = (el("stLabel").value || "").trim();
-        if (!label) return UI.toast("Label is required.");
-
-        const emoji = (el("stEmoji").value || "").trim() || null;
-        const sort_order = Helpers.toInt(el("stSort").value, 0);
-        const image_path = await uploadSelectedFile();
-
-        const { error } = await Supa.client
-          .from("stickers")
-          .insert({ label, emoji, image_path, sort_order, is_active: true });
-
-        if (error) return UI.toast(error.message);
-
-        el("stLabel").value = "";
-        el("stEmoji").value = "";
-        el("stSort").value = "";
-        el("stFile").value = "";
-      }
-
-      async function toggleActive(id, is_active) {
-        const { error } = await Supa.client.from("stickers").update({ is_active }).eq("id", id);
-        if (error) UI.toast(error.message);
-      }
-
-      async function editSticker(it) {
-        const newLabel = prompt("Label:", it.label);
-        if (newLabel === null) return;
-
-        const newEmoji = prompt("Emoji (optional):", it.emoji || "");
-        if (newEmoji === null) return;
-
-        const newSort = prompt("Sort order:", String(it.sort_order ?? 0));
-        if (newSort === null) return;
-
-        const payload = {
-          label: (newLabel || "").trim() || it.label,
-          emoji: (newEmoji || "").trim() || null,
-          sort_order: Helpers.toInt(newSort, it.sort_order ?? 0)
-        };
-
-        const { error } = await Supa.client.from("stickers").update(payload).eq("id", it.id);
-        if (error) UI.toast(error.message);
-      }
-
-      async function replaceImage(it) {
-        const picker = document.createElement("input");
-        picker.type = "file";
-        picker.accept = "image/*";
-
-        picker.onchange = async () => {
-          const file = picker.files?.[0];
-          if (!file) return;
-
-          const id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
-          const ext = extFromFileName(file.name);
-          const objectPath = `${id}.${ext}`;
-
-          const { error: upErr } = await Supa.client.storage.from(BUCKET).upload(objectPath, file, {
-            upsert: true,
-            contentType: file.type || "image/*"
-          });
-          if (upErr) return UI.toast(upErr.message);
-
-          const { error } = await Supa.client.from("stickers").update({ image_path: objectPath }).eq("id", it.id);
-          if (error) UI.toast(error.message);
-        };
-
-        picker.click();
-      }
-
-      async function del(id) {
-        if (!confirm("Delete this sticker?")) return;
-        const { error } = await Supa.client.from("stickers").delete().eq("id", id);
-        if (error) UI.toast(error.message);
-      }
-
-      function wire() {
-        document.getElementById("btnAddSticker").addEventListener("click", add);
       }
 
       function subscribeRealtime() {
@@ -684,7 +526,7 @@
         channel.subscribe();
       }
 
-      return { load, wire, subscribeRealtime };
+      return { load, subscribeRealtime };
     })();
 
     (async () => {
@@ -695,7 +537,6 @@
 
       PR.wire();
       Allowance.wire();
-      Stickers.wire();
 
       await PR.load();
       await Allowance.loadBalances();
