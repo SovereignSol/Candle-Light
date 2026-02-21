@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="../css/style.css" />
 
   <style>
-    /* Top 4 tabs */
     .top-tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     .top-tab {
       display:flex; align-items:center; gap:10px;
@@ -23,7 +22,6 @@
     .panel { display:none; }
     .panel.active { display:block; }
 
-    /* Purchase Requests hero */
     .pr-hero {
       position: relative;
       border: 1px solid rgba(255,255,255,0.10);
@@ -31,7 +29,7 @@
       padding: 16px;
       background:
         linear-gradient(to bottom, rgba(10,15,20,0.55), rgba(10,15,20,0.82)),
-        url("../assets/images/purchase_bg.webp");
+        url("images/purchase_bg.webp");
       background-size: cover;
       background-position: center;
       margin-top: 12px;
@@ -62,7 +60,6 @@
     .row-2col { display:grid; grid-template-columns: 1fr; gap: 12px; }
     @media (min-width: 860px) { .row-2col { grid-template-columns: 1fr 1fr; } }
 
-    /* Status lanes inside Purchase Requests */
     .lanes { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
     .lane-btn {
       display:flex; align-items:center; gap:8px;
@@ -92,12 +89,10 @@
     .btn-icon { display:inline-flex; align-items:center; gap:8px; }
     .btn-icon img { width:18px; height:18px; object-fit:contain; }
 
-    /* Stickerbook */
     .sticker-img { width:52px; height:52px; border-radius:12px; object-fit:cover; border:1px solid rgba(255,255,255,0.10); }
     .award-row { display:flex; gap:12px; align-items:flex-start; }
     .card-left { display:grid; gap:4px; }
 
-    /* Little helper text */
     .hint { color: var(--muted); font-size: 12px; }
   </style>
 </head>
@@ -114,31 +109,29 @@
     <section class="card">
       <h1>Rewards</h1>
 
-      <!-- TOP 4 TABS + ICON PATHS -->
       <div class="top-tabs">
         <button class="top-tab active" data-panel="panelPR">
-          <img src="../assets/icons/tab_purchase.webp" alt="">
+          <img src="icons/tab_purchase.webp" alt="">
           Purchase Requests
         </button>
 
         <button class="top-tab" data-panel="panelAllowance">
-          <img src="../assets/icons/tab_allowance.webp" alt="">
+          <img src="icons/tab_allowance.webp" alt="">
           Allowance
         </button>
 
         <button class="top-tab" data-panel="panelStickerbook">
-          <img src="../assets/icons/tab_stickerbook.webp" alt="">
+          <img src="icons/tab_stickerbook.webp" alt="">
           Sticker Book
         </button>
 
         <button class="top-tab" data-panel="panelWishlist">
-          <img src="../assets/icons/tab_wishlist.webp" alt="">
+          <img src="icons/tab_wishlist.webp" alt="">
           Wishlist
         </button>
       </div>
     </section>
 
-    <!-- PURCHASE REQUESTS -->
     <section class="card panel active" id="panelPR">
       <div class="pr-hero">
         <div class="pr-hero-top">
@@ -147,9 +140,8 @@
             <div class="hint">All fields are required: Title, Cost, Link, Shipping, Sale End Date, Want Scale (1-10).</div>
           </div>
 
-          <!-- Allowance balance top-right -->
           <div class="balance-box" title="Your allowance balance">
-            <img src="../assets/icons/tab_allowance.webp" alt="">
+            <img src="icons/tab_allowance.webp" alt="">
             <div>
               <div class="balance-label">Allowance</div>
               <div class="balance-value" id="myBalance">$0.00</div>
@@ -157,8 +149,6 @@
           </div>
         </div>
 
-        <!-- Background image is applied to .pr-hero via:
-             ../assets/images/purchase_bg.webp -->
         <div class="pr-hero-inner">
           <div class="row-2col">
             <div>
@@ -202,20 +192,19 @@
         </div>
       </div>
 
-      <!-- Status lane buttons with icons -->
       <div class="lanes">
         <button class="lane-btn active" data-lane="pending">
-          <img src="../assets/icons/status_pending.webp" alt="">
+          <img src="icons/status_pending.webp" alt="">
           Pending Approval <span class="lane-count" id="countPending">(0)</span>
         </button>
 
         <button class="lane-btn" data-lane="approved">
-          <img src="../assets/icons/status_approved.webp" alt="">
+          <img src="icons/status_approved.webp" alt="">
           Approved <span class="lane-count" id="countApproved">(0)</span>
         </button>
 
         <button class="lane-btn" data-lane="denied">
-          <img src="../assets/icons/status_denied.webp" alt="">
+          <img src="icons/status_denied.webp" alt="">
           Denied <span class="lane-count" id="countDenied">(0)</span>
         </button>
       </div>
@@ -223,14 +212,12 @@
       <div id="prLaneList" class="list"></div>
     </section>
 
-    <!-- WISHLIST -->
     <section class="card panel" id="panelWishlist">
       <h2>Wishlist</h2>
       <div class="hint">Shows days in wishlist. Includes PLEASE button (only once) that returns item to Pending Approval.</div>
       <div id="wlList" class="list"></div>
     </section>
 
-    <!-- ALLOWANCE -->
     <section class="card panel" id="panelAllowance">
       <h2>Allowance</h2>
       <div class="hint">Owner awards allowance with optional sticker attached, message is required.</div>
@@ -273,7 +260,6 @@
       <div id="ledger" class="list"></div>
     </section>
 
-    <!-- STICKER BOOK -->
     <section class="card panel" id="panelStickerbook">
       <h2>Sticker Book</h2>
       <div class="hint">Displays: sticker, amount, and message attached to allowance awards.</div>
@@ -295,32 +281,27 @@
   <script src="../js/ui.js"></script>
 
   <script>
-    // =========================
-    // ICON PATHS (WEBP)
-    // =========================
     const ICONS = {
       tabs: {
-        purchase: "../assets/icons/tab_purchase.webp",
-        allowance: "../assets/icons/tab_allowance.webp",
-        stickerbook: "../assets/icons/tab_stickerbook.webp",
-        wishlist: "../assets/icons/tab_wishlist.webp"
+        purchase: "icons/tab_purchase.webp",
+        allowance: "icons/tab_allowance.webp",
+        stickerbook: "icons/tab_stickerbook.webp",
+        wishlist: "icons/tab_wishlist.webp"
       },
       status: {
-        pending: "../assets/icons/status_pending.webp",   // question mark icon
-        approved: "../assets/icons/status_approved.webp", // check mark icon
-        denied: "../assets/icons/status_denied.webp"      // x icon
+        pending: "icons/status_pending.webp",
+        approved: "icons/status_approved.webp",
+        denied: "icons/status_denied.webp"
       },
       actions: {
-        approve: "../assets/icons/btn_approve.webp",      // check icon
-        deny: "../assets/icons/btn_deny.webp",            // x icon
-        wishlist: "../assets/icons/btn_wishlist.webp",    // send to wishlist icon
-        please: "../assets/icons/btn_please.webp"         // please icon
+        approve: "icons/btn_approve.webp",
+        deny: "icons/btn_deny.webp",
+        wishlist: "icons/btn_wishlist.webp",
+        please: "icons/btn_please.webp"
       }
     };
 
-    // =========================
-    // TOP TAB SWITCHING
-    // =========================
+    // Top tabs
     (function(){
       const btns = Array.from(document.querySelectorAll(".top-tab"));
       btns.forEach(b => b.addEventListener("click", () => {
@@ -332,9 +313,6 @@
       }));
     })();
 
-    // =========================
-    // HELPERS
-    // =========================
     const Helpers = (() => {
       function toNumberRequired(v) {
         const s = (v || "").trim();
@@ -342,20 +320,17 @@
         const n = Number(s);
         return Number.isFinite(n) ? n : null;
       }
-
       function toIntRequired(v) {
         const s = (v || "").trim();
         if (!s) return null;
         const n = Number(s);
         return Number.isInteger(n) ? n : null;
       }
-
       function fmtMoney(n) {
         const num = Number(n);
         if (!Number.isFinite(num)) return "$0.00";
         return "$" + num.toFixed(2);
       }
-
       function daysSince(ts) {
         if (!ts) return 0;
         const t = new Date(ts).getTime();
@@ -363,40 +338,29 @@
         const diff = Date.now() - t;
         return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
       }
-
       return { toNumberRequired, toIntRequired, fmtMoney, daysSince };
     })();
 
-    // =========================
-    // ROLE CHECK
-    // =========================
     const Role = (() => {
       let isOwner = false;
-
       async function load() {
         const uid = await Auth.getUserId();
         if (!uid) return false;
-
         const { data, error } = await Supa.client
           .from("app_members")
           .select("role")
           .eq("user_id", uid)
           .maybeSingle();
-
         if (error) return false;
         isOwner = (data?.role === "owner");
         return isOwner;
       }
-
       function owner() { return isOwner; }
       return { load, owner };
     })();
 
-    // =========================
-    // STICKERS FROM SUPABASE
-    // =========================
     const StickerStore = (() => {
-      const BUCKET = "stickers"; // bucket name
+      const BUCKET = "stickers";
       let list = [];
       let map = new Map();
 
@@ -433,25 +397,18 @@
       return { refresh, all, get, urlForStickerId };
     })();
 
-    // =========================
-    // ALLOWANCE
-    // =========================
     const Allowance = (() => {
       const el = (id) => document.getElementById(id);
 
       async function loadMyBalance() {
         const uid = await Auth.getUserId();
         if (!uid) return;
-
         const { data, error } = await Supa.client
           .from("allowance_balances")
           .select("balance")
           .eq("user_id", uid)
           .maybeSingle();
-
-        if (!error) {
-          el("myBalance").textContent = Helpers.fmtMoney(data?.balance || 0);
-        }
+        if (!error) el("myBalance").textContent = Helpers.fmtMoney(data?.balance || 0);
       }
 
       async function loadBalances() {
@@ -459,17 +416,14 @@
           .from("allowance_balances")
           .select("*")
           .order("user_id", { ascending: true });
-
         if (error) return UI.toast(error.message);
 
         const root = el("balances");
         root.innerHTML = "";
-
         if (!data || !data.length) {
           root.innerHTML = `<div class="muted">No balances yet.</div>`;
           return;
         }
-
         for (const b of data) {
           const box = document.createElement("div");
           box.className = "box";
@@ -486,12 +440,10 @@
       async function loadMembersSelect() {
         const sel = el("awUser");
         sel.innerHTML = "";
-
         const { data, error } = await Supa.client
           .from("app_members")
           .select("user_id,role")
           .order("role", { ascending: true });
-
         if (error) return UI.toast(error.message);
 
         for (const u of (data || [])) {
@@ -505,7 +457,6 @@
       async function loadStickersSelect() {
         const sel = el("awSticker");
         sel.innerHTML = "";
-
         const optNone = document.createElement("option");
         optNone.value = "";
         optNone.textContent = "No sticker";
@@ -531,21 +482,11 @@
         const sticker_id = el("awSticker").value || null;
         const message = (el("awMessage").value || "").trim();
 
-        // You said: allowance is purely so owner can reward allowance with stickers + message.
-        // Enforce required amount and message.
         if (!user_id) return UI.toast("Recipient is required.");
         if (amount === null) return UI.toast("Amount is required.");
         if (!message) return UI.toast("Message is required.");
 
-        const payload = {
-          user_id,
-          amount,
-          reason: "Allowance Award",
-          message,
-          sticker_id,
-          created_by
-        };
-
+        const payload = { user_id, amount, reason: "Allowance Award", message, sticker_id, created_by };
         const { error } = await Supa.client.from("allowance_ledger").insert(payload);
         if (error) return UI.toast(error.message);
 
@@ -560,12 +501,10 @@
           .select("id,user_id,amount,reason,message,sticker_id,created_by,created_at")
           .order("created_at", { ascending: false })
           .limit(200);
-
         if (error) return UI.toast(error.message);
 
         const root = el("ledger");
         root.innerHTML = "";
-
         if (!data || !data.length) {
           root.innerHTML = `<div class="muted">No ledger entries yet.</div>`;
           return;
@@ -606,9 +545,6 @@
       return { loadMyBalance, loadBalances, loadMembersSelect, loadStickersSelect, loadLedger, wire };
     })();
 
-    // =========================
-    // STICKER BOOK DISPLAY
-    // =========================
     const Stickerbook = (() => {
       async function loadStickerAwards() {
         const { data, error } = await Supa.client
@@ -616,14 +552,12 @@
           .select("id,user_id,amount,message,sticker_id,created_at")
           .order("created_at", { ascending: false })
           .limit(200);
-
         if (error) return UI.toast(error.message);
 
         const root = document.getElementById("stickerbookList");
         root.innerHTML = "";
 
         const awards = (data || []).filter(x => x.message && x.message.trim().length);
-
         if (!awards.length) {
           root.innerHTML = `<div class="muted">No sticker awards yet.</div>`;
           return;
@@ -721,9 +655,6 @@
       return { loadStickerAwards, loadStickerOptions };
     })();
 
-    // =========================
-    // PURCHASE REQUESTS (your exact logic)
-    // =========================
     const PR = (() => {
       let currentLane = "pending";
 
@@ -793,7 +724,6 @@
           .from("purchase_requests")
           .update(payload)
           .eq("id", it.id);
-
         if (error) UI.toast(error.message);
       }
 
@@ -866,7 +796,6 @@
             deny.innerHTML = `<img src="${ICONS.actions.deny}" alt="">Deny`;
             deny.onclick = () => updateStatus(it, "denied");
 
-            // Owner-only
             if (!Role.owner()) {
               approve.disabled = true;
               deny.disabled = true;
@@ -879,7 +808,6 @@
           }
 
           if (status === "approved") {
-            // Undo -> Denied (either user)
             const undo = document.createElement("button");
             undo.className = "btn btn-ghost";
             undo.textContent = "Undo";
@@ -888,7 +816,6 @@
           }
 
           if (status === "denied") {
-            // Wishlist (other user can do this) + PLEASE (once)
             const wl = document.createElement("button");
             wl.className = "btn btn-ghost btn-icon";
             wl.innerHTML = `<img src="${ICONS.actions.wishlist}" alt="">Wishlist`;
@@ -982,7 +909,6 @@
         const userId = await Auth.getUserId();
         if (!userId) return UI.toast("Not signed in.");
 
-        // Your rule: none optional
         if (!title) return UI.toast("Title is required.");
         if (cost === null) return UI.toast("Cost is required.");
         if (!link) return UI.toast("Link is required.");
@@ -1027,9 +953,6 @@
       return { wire, loadAll, subscribeRealtime };
     })();
 
-    // =========================
-    // REALTIME
-    // =========================
     function subscribeOtherRealtime() {
       const ch1 = Supa.client.channel("rt-ledger");
       ch1.on("postgres_changes", { event: "*", schema: "public", table: "allowance_ledger" }, async () => {
@@ -1066,9 +989,6 @@
       await PR.loadAll();
     }
 
-    // =========================
-    // BOOT
-    // =========================
     (async () => {
       const ok = await Auth.requireSessionOrRedirect();
       if (!ok) return;
