@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lightwell Hub</title>
+  <title>Lightwell Rewards</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">Lightwell Hub</div>
+    <div class="brand">Lightwell Rewards</div>
     <div class="authbar">
       <span id="authStatus" class="muted">Checking session...</span>
       <button id="btnSignIn" class="btn btn-primary hidden">Sign in</button>
@@ -19,28 +19,13 @@
 
   <main class="container">
     <section class="card">
-      <h1>Menu</h1>
-      <p class="muted">Each feature is its own page.</p>
+      <h1>Rewards Module</h1>
+      <p class="muted">Purchase Requests, Allowance, and Sticker Book in one place.</p>
 
       <div class="grid-2">
-        <a class="tile" href="./pages/grocery.html">
-          <div class="tile-title">Grocery List</div>
-          <div class="tile-sub">Shared, live list</div>
-        </a>
-
-        <a class="tile" href="./pages/purchase_requests.html">
-          <div class="tile-title">Purchase Requests</div>
-          <div class="tile-sub">Request and track purchases</div>
-        </a>
-
-        <a class="tile" href="./pages/allowance.html">
-          <div class="tile-title">Allowance</div>
-          <div class="tile-sub">Balances, ledger, awards</div>
-        </a>
-
-        <a class="tile" href="./pages/stickers.html">
-          <div class="tile-title">Sticker Book</div>
-          <div class="tile-sub">Manage sticker options</div>
+        <a class="tile" href="./pages/rewards.html">
+          <div class="tile-title">Open Rewards</div>
+          <div class="tile-sub">Purchase requests, allowance, stickers</div>
         </a>
       </div>
     </section>
@@ -48,8 +33,8 @@
     <section class="card">
       <h2>Notes</h2>
       <ul class="muted">
-        <li>This app requires login.</li>
-        <li>There is no household join, everything is “one shared workspace”.</li>
+        <li>This module requires login.</li>
+        <li>Access is enforced by Supabase Auth + RLS, not by link routing.</li>
       </ul>
     </section>
   </main>
@@ -64,7 +49,6 @@
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
     }
-
     (async () => {
       await Auth.initAuthUI();
     })();
