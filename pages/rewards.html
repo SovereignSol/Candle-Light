@@ -5,15 +5,103 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rewards</title>
   <link rel="stylesheet" href="../css/style.css" />
+
   <style>
-    .tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-    .tabbtn { padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); cursor:pointer; color: var(--text); }
-    .tabbtn.active { border-color: rgba(79,140,255,0.55); background: rgba(79,140,255,0.18); }
-    .tab { display:none; }
-    .tab.active { display:block; }
-    .img40 { width:40px; height:40px; border-radius:10px; object-fit:cover; border:1px solid rgba(255,255,255,0.10); }
+    /* Top 4 tabs */
+    .top-tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    .top-tab {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      cursor:pointer;
+      color: var(--text);
+    }
+    .top-tab.active { border-color: rgba(79,140,255,0.55); background: rgba(79,140,255,0.18); }
+    .top-tab img { width:18px; height:18px; object-fit:contain; }
+
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* Purchase Requests hero */
+    .pr-hero {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 16px;
+      background:
+        linear-gradient(to bottom, rgba(10,15,20,0.55), rgba(10,15,20,0.82)),
+        url("../assets/images/purchase_bg.webp");
+      background-size: cover;
+      background-position: center;
+      margin-top: 12px;
+    }
+    .pr-hero-inner {
+      background: rgba(16,24,38,0.62);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 14px;
+      backdrop-filter: blur(6px);
+    }
+    .pr-hero-top {
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+      margin-bottom: 10px;
+    }
+    .balance-box {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+    .balance-box img { width:22px; height:22px; object-fit:contain; }
+    .balance-label { color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+    .balance-value { font-size: 20px; font-weight: 800; }
+
+    .row-2col { display:grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 860px) { .row-2col { grid-template-columns: 1fr 1fr; } }
+
+    /* Status lanes inside Purchase Requests */
+    .lanes { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .lane-btn {
+      display:flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      cursor:pointer;
+      color: var(--text);
+    }
+    .lane-btn.active { border-color: rgba(79,140,255,0.55); background: rgba(79,140,255,0.18); }
+    .lane-btn img { width:18px; height:18px; object-fit:contain; }
+    .lane-count { color: var(--muted); font-size: 12px; margin-left: 2px; }
+
+    .pill {
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 12px;
+      width: fit-content;
+    }
+    .pill img { width: 14px; height: 14px; object-fit:contain; }
+
+    .btn-icon { display:inline-flex; align-items:center; gap:8px; }
+    .btn-icon img { width:18px; height:18px; object-fit:contain; }
+
+    /* Stickerbook */
+    .sticker-img { width:52px; height:52px; border-radius:12px; object-fit:cover; border:1px solid rgba(255,255,255,0.10); }
+    .award-row { display:flex; gap:12px; align-items:flex-start; }
+    .card-left { display:grid; gap:4px; }
+
+    /* Little helper text */
+    .hint { color: var(--muted); font-size: 12px; }
   </style>
 </head>
+
 <body>
   <header class="topbar">
     <a class="link" href="../index.html">← Home</a>
@@ -25,49 +113,127 @@
   <main class="container">
     <section class="card">
       <h1>Rewards</h1>
-      <p class="muted">One page for Purchase Requests, Allowance, and Sticker Book.</p>
 
-      <div class="tabs">
-        <button class="tabbtn active" data-tab="prTab">Purchase Requests</button>
-        <button class="tabbtn" data-tab="allowTab">Allowance</button>
-        <button class="tabbtn" data-tab="stTab">Sticker Book</button>
+      <!-- TOP 4 TABS + ICON PATHS -->
+      <div class="top-tabs">
+        <button class="top-tab active" data-panel="panelPR">
+          <img src="../assets/icons/tab_purchase.webp" alt="">
+          Purchase Requests
+        </button>
+
+        <button class="top-tab" data-panel="panelAllowance">
+          <img src="../assets/icons/tab_allowance.webp" alt="">
+          Allowance
+        </button>
+
+        <button class="top-tab" data-panel="panelStickerbook">
+          <img src="../assets/icons/tab_stickerbook.webp" alt="">
+          Sticker Book
+        </button>
+
+        <button class="top-tab" data-panel="panelWishlist">
+          <img src="../assets/icons/tab_wishlist.webp" alt="">
+          Wishlist
+        </button>
       </div>
     </section>
 
-    <!-- Purchase Requests -->
-    <section class="card tab active" id="prTab">
-      <h2>Purchase Requests</h2>
+    <!-- PURCHASE REQUESTS -->
+    <section class="card panel active" id="panelPR">
+      <div class="pr-hero">
+        <div class="pr-hero-top">
+          <div>
+            <h2 style="margin:0;">Purchase Requests</h2>
+            <div class="hint">All fields are required: Title, Cost, Link, Shipping, Sale End Date, Want Scale (1-10).</div>
+          </div>
 
-      <div class="grid-2">
-        <div>
-          <label class="label">Title</label>
-          <input id="prTitle" class="input" placeholder="What do you want?" />
+          <!-- Allowance balance top-right -->
+          <div class="balance-box" title="Your allowance balance">
+            <img src="../assets/icons/tab_allowance.webp" alt="">
+            <div>
+              <div class="balance-label">Allowance</div>
+              <div class="balance-value" id="myBalance">$0.00</div>
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="label">Link (optional)</label>
-          <input id="prLink" class="input" placeholder="https://..." />
-        </div>
-        <div>
-          <label class="label">Cost</label>
-          <input id="prCost" class="input" placeholder="19.99" inputmode="decimal" />
-        </div>
-        <div>
-          <label class="label">Shipping (optional)</label>
-          <input id="prShip" class="input" placeholder="0.00" inputmode="decimal" />
+
+        <!-- Background image is applied to .pr-hero via:
+             ../assets/images/purchase_bg.webp -->
+        <div class="pr-hero-inner">
+          <div class="row-2col">
+            <div>
+              <label class="label">Title</label>
+              <input id="prTitle" class="input" placeholder="Title" />
+            </div>
+
+            <div>
+              <label class="label">Cost</label>
+              <input id="prCost" class="input" placeholder="0.00" inputmode="decimal" />
+            </div>
+
+            <div>
+              <label class="label">Link</label>
+              <input id="prLink" class="input" placeholder="https://..." />
+            </div>
+
+            <div>
+              <label class="label">Shipping</label>
+              <input id="prShip" class="input" placeholder="0.00" inputmode="decimal" />
+            </div>
+
+            <div>
+              <label class="label">Sale End Date</label>
+              <input id="prSaleEnd" class="input" type="date" />
+            </div>
+
+            <div>
+              <label class="label">Want Scale (1-10)</label>
+              <select id="prWant" class="select">
+                <option value="">Select</option>
+                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <button id="btnSubmitPR" class="btn btn-primary">Submit</button>
+          </div>
         </div>
       </div>
 
-      <div class="row">
-        <button id="btnSubmitPR" class="btn btn-primary">Submit</button>
+      <!-- Status lane buttons with icons -->
+      <div class="lanes">
+        <button class="lane-btn active" data-lane="pending">
+          <img src="../assets/icons/status_pending.webp" alt="">
+          Pending Approval <span class="lane-count" id="countPending">(0)</span>
+        </button>
+
+        <button class="lane-btn" data-lane="approved">
+          <img src="../assets/icons/status_approved.webp" alt="">
+          Approved <span class="lane-count" id="countApproved">(0)</span>
+        </button>
+
+        <button class="lane-btn" data-lane="denied">
+          <img src="../assets/icons/status_denied.webp" alt="">
+          Denied <span class="lane-count" id="countDenied">(0)</span>
+        </button>
       </div>
 
-      <div id="prList" class="list"></div>
+      <div id="prLaneList" class="list"></div>
     </section>
 
-    <!-- Allowance -->
-    <section class="card tab" id="allowTab">
+    <!-- WISHLIST -->
+    <section class="card panel" id="panelWishlist">
+      <h2>Wishlist</h2>
+      <div class="hint">Shows days in wishlist. Includes PLEASE button (only once) that returns item to Pending Approval.</div>
+      <div id="wlList" class="list"></div>
+    </section>
+
+    <!-- ALLOWANCE -->
+    <section class="card panel" id="panelAllowance">
       <h2>Allowance</h2>
-      <p class="muted small">Balances come from <code>allowance_balances</code>. Ledger writes are owner-only.</p>
+      <div class="hint">Owner awards allowance with optional sticker attached, message is required.</div>
 
       <div class="kpi" id="balances"></div>
 
@@ -75,7 +241,7 @@
 
       <h3>Award allowance (owner)</h3>
 
-      <div class="grid-2">
+      <div class="row-2col">
         <div>
           <label class="label">Recipient</label>
           <select id="awUser" class="select"></select>
@@ -83,22 +249,19 @@
 
         <div>
           <label class="label">Amount</label>
-          <input id="awAmount" class="input" placeholder="5.00" inputmode="decimal" />
+          <input id="awAmount" class="input" placeholder="0.00" inputmode="decimal" />
         </div>
 
         <div>
-          <label class="label">Sticker (optional)</label>
+          <label class="label">Sticker</label>
           <select id="awSticker" class="select"></select>
         </div>
 
         <div>
-          <label class="label">Reason</label>
-          <input id="awReason" class="input" placeholder="Good job" />
+          <label class="label">Message</label>
+          <input id="awMessage" class="input" placeholder="Message" />
         </div>
       </div>
-
-      <label class="label">Message (optional)</label>
-      <textarea id="awMessage" class="textarea" placeholder="Nice work today!"></textarea>
 
       <div class="row">
         <button id="btnAward" class="btn btn-primary">Award</button>
@@ -110,15 +273,18 @@
       <div id="ledger" class="list"></div>
     </section>
 
-    <!-- Stickers -->
-    <section class="card tab" id="stTab">
+    <!-- STICKER BOOK -->
+    <section class="card panel" id="panelStickerbook">
       <h2>Sticker Book</h2>
-      <p class="muted small">
-        Stickers are managed in Supabase (Table Editor -> <code>stickers</code>).
-        Optional images are stored in the Storage bucket <code>stickers</code>.
-      </p>
+      <div class="hint">Displays: sticker, amount, and message attached to allowance awards.</div>
 
-      <div id="stList" class="list"></div>
+      <div id="stickerbookList" class="list"></div>
+
+      <hr class="sep" />
+
+      <h3>Sticker Options</h3>
+      <div class="hint">Loaded from Supabase table <code>stickers</code> (images from Storage bucket <code>stickers</code>).</div>
+      <div id="stickerOptionsList" class="list"></div>
     </section>
   </main>
 
@@ -129,164 +295,164 @@
   <script src="../js/ui.js"></script>
 
   <script>
-    // Tabs
+    // =========================
+    // ICON PATHS (WEBP)
+    // =========================
+    const ICONS = {
+      tabs: {
+        purchase: "../assets/icons/tab_purchase.webp",
+        allowance: "../assets/icons/tab_allowance.webp",
+        stickerbook: "../assets/icons/tab_stickerbook.webp",
+        wishlist: "../assets/icons/tab_wishlist.webp"
+      },
+      status: {
+        pending: "../assets/icons/status_pending.webp",   // question mark icon
+        approved: "../assets/icons/status_approved.webp", // check mark icon
+        denied: "../assets/icons/status_denied.webp"      // x icon
+      },
+      actions: {
+        approve: "../assets/icons/btn_approve.webp",      // check icon
+        deny: "../assets/icons/btn_deny.webp",            // x icon
+        wishlist: "../assets/icons/btn_wishlist.webp",    // send to wishlist icon
+        please: "../assets/icons/btn_please.webp"         // please icon
+      }
+    };
+
+    // =========================
+    // TOP TAB SWITCHING
+    // =========================
     (function(){
-      const btns = Array.from(document.querySelectorAll(".tabbtn"));
+      const btns = Array.from(document.querySelectorAll(".top-tab"));
       btns.forEach(b => b.addEventListener("click", () => {
         btns.forEach(x => x.classList.remove("active"));
         b.classList.add("active");
-        const id = b.getAttribute("data-tab");
-        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        const id = b.getAttribute("data-panel");
+        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
         document.getElementById(id).classList.add("active");
       }));
     })();
 
+    // =========================
+    // HELPERS
+    // =========================
     const Helpers = (() => {
-      function toNumberOrNull(v) {
+      function toNumberRequired(v) {
         const s = (v || "").trim();
         if (!s) return null;
         const n = Number(s);
         return Number.isFinite(n) ? n : null;
       }
-      function fmt(n) {
-        if (n === null || n === undefined) return "";
-        const num = Number(n);
-        if (!Number.isFinite(num)) return String(n);
-        return num.toFixed(2);
+
+      function toIntRequired(v) {
+        const s = (v || "").trim();
+        if (!s) return null;
+        const n = Number(s);
+        return Number.isInteger(n) ? n : null;
       }
-      return { toNumberOrNull, fmt };
+
+      function fmtMoney(n) {
+        const num = Number(n);
+        if (!Number.isFinite(num)) return "$0.00";
+        return "$" + num.toFixed(2);
+      }
+
+      function daysSince(ts) {
+        if (!ts) return 0;
+        const t = new Date(ts).getTime();
+        if (!Number.isFinite(t)) return 0;
+        const diff = Date.now() - t;
+        return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+      }
+
+      return { toNumberRequired, toIntRequired, fmtMoney, daysSince };
     })();
 
-    // Purchase Requests
-    const PR = (() => {
-      const el = (id) => document.getElementById(id);
+    // =========================
+    // ROLE CHECK
+    // =========================
+    const Role = (() => {
+      let isOwner = false;
 
       async function load() {
-        const { data, error } = await Supa.client
-          .from("purchase_requests")
-          .select("*")
-          .order("created_at", { ascending: false });
+        const uid = await Auth.getUserId();
+        if (!uid) return false;
 
-        if (error) return UI.toast(error.message);
-        render(data || []);
+        const { data, error } = await Supa.client
+          .from("app_members")
+          .select("role")
+          .eq("user_id", uid)
+          .maybeSingle();
+
+        if (error) return false;
+        isOwner = (data?.role === "owner");
+        return isOwner;
       }
 
-      function render(items) {
-        const root = el("prList");
-        root.innerHTML = "";
+      function owner() { return isOwner; }
+      return { load, owner };
+    })();
 
-        if (!items.length) {
-          root.innerHTML = `<div class="muted">No requests yet.</div>`;
+    // =========================
+    // STICKERS FROM SUPABASE
+    // =========================
+    const StickerStore = (() => {
+      const BUCKET = "stickers"; // bucket name
+      let list = [];
+      let map = new Map();
+
+      function publicUrl(path) {
+        if (!path) return null;
+        const { data } = Supa.client.storage.from(BUCKET).getPublicUrl(path);
+        return data?.publicUrl || null;
+      }
+
+      async function refresh() {
+        const { data, error } = await Supa.client
+          .from("stickers")
+          .select("id,label,image_path,is_active,sort_order,created_at")
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          UI.toast(error.message);
           return;
         }
 
-        for (const it of items) {
-          const row = document.createElement("div");
-          row.className = "list-row";
-
-          const left = document.createElement("div");
-          left.className = "pr-left";
-
-          const title = document.createElement("div");
-          title.className = "pr-title";
-          title.textContent = it.title;
-
-          const meta = document.createElement("div");
-          meta.className = "muted small";
-          const cost = it.cost ?? "";
-          const ship = it.shipping_cost ?? "";
-          meta.textContent = `Status: ${it.status} • Cost: ${cost}${ship !== "" ? " • Shipping: " + ship : ""}${it.deducted ? " • deducted" : ""}`;
-
-          const link = document.createElement("a");
-          link.className = "link small";
-          link.href = it.link || "#";
-          link.textContent = it.link ? "Open link" : "";
-          link.target = "_blank";
-          link.rel = "noreferrer";
-          if (!it.link) link.style.display = "none";
-
-          left.appendChild(title);
-          left.appendChild(meta);
-          left.appendChild(link);
-
-          const right = document.createElement("div");
-          right.className = "pr-actions";
-
-          const btnWishlist = document.createElement("button");
-          btnWishlist.className = "btn btn-ghost";
-          btnWishlist.textContent = "Wishlist";
-          btnWishlist.onclick = () => setStatus(it.id, "wishlist");
-
-          const btnApprove = document.createElement("button");
-          btnApprove.className = "btn btn-primary";
-          btnApprove.textContent = "Approve";
-          btnApprove.onclick = () => setStatus(it.id, "approved");
-
-          const btnDeny = document.createElement("button");
-          btnDeny.className = "btn btn-danger";
-          btnDeny.textContent = "Deny";
-          btnDeny.onclick = () => setStatus(it.id, "denied");
-
-          right.appendChild(btnWishlist);
-          right.appendChild(btnApprove);
-          right.appendChild(btnDeny);
-
-          row.appendChild(left);
-          row.appendChild(right);
-          root.appendChild(row);
-        }
+        list = data || [];
+        map = new Map(list.map(s => [s.id, s]));
       }
 
-      async function setStatus(id, status) {
-        const { error } = await Supa.client
-          .from("purchase_requests")
-          .update({ status })
-          .eq("id", id);
-
-        if (error) UI.toast(error.message);
+      function all() { return list; }
+      function get(id) { return map.get(id) || null; }
+      function urlForStickerId(id) {
+        const s = get(id);
+        if (!s) return null;
+        return publicUrl(s.image_path);
       }
 
-      async function submit() {
-        const title = (el("prTitle").value || "").trim();
-        if (!title) return UI.toast("Title is required.");
-
-        const userId = await Auth.getUserId();
-        if (!userId) return UI.toast("Not signed in.");
-
-        const link = (el("prLink").value || "").trim() || null;
-        const cost = Helpers.toNumberOrNull(el("prCost").value);
-        const shipping_cost = Helpers.toNumberOrNull(el("prShip").value);
-
-        const payload = { title, link, cost, shipping_cost, status: "pending", created_by: userId };
-
-        const { error } = await Supa.client
-          .from("purchase_requests")
-          .insert(payload);
-
-        if (error) return UI.toast(error.message);
-
-        el("prTitle").value = "";
-        el("prLink").value = "";
-        el("prCost").value = "";
-        el("prShip").value = "";
-      }
-
-      function wire() {
-        el("btnSubmitPR").addEventListener("click", submit);
-      }
-
-      function subscribeRealtime() {
-        const channel = Supa.client.channel("rt-pr");
-        channel.on("postgres_changes", { event: "*", schema: "public", table: "purchase_requests" }, () => load());
-        channel.subscribe();
-      }
-
-      return { load, wire, subscribeRealtime };
+      return { refresh, all, get, urlForStickerId };
     })();
 
-    // Allowance
+    // =========================
+    // ALLOWANCE
+    // =========================
     const Allowance = (() => {
       const el = (id) => document.getElementById(id);
+
+      async function loadMyBalance() {
+        const uid = await Auth.getUserId();
+        if (!uid) return;
+
+        const { data, error } = await Supa.client
+          .from("allowance_balances")
+          .select("balance")
+          .eq("user_id", uid)
+          .maybeSingle();
+
+        if (!error) {
+          el("myBalance").textContent = Helpers.fmtMoney(data?.balance || 0);
+        }
+      }
 
       async function loadBalances() {
         const { data, error } = await Supa.client
@@ -311,10 +477,81 @@
             <div class="muted small">User</div>
             <div class="small">${b.user_id}</div>
             <div class="muted small" style="margin-top:10px;">Balance</div>
-            <div class="value">$${Helpers.fmt(b.balance)}</div>
+            <div class="value">${Helpers.fmtMoney(b.balance)}</div>
           `;
           root.appendChild(box);
         }
+      }
+
+      async function loadMembersSelect() {
+        const sel = el("awUser");
+        sel.innerHTML = "";
+
+        const { data, error } = await Supa.client
+          .from("app_members")
+          .select("user_id,role")
+          .order("role", { ascending: true });
+
+        if (error) return UI.toast(error.message);
+
+        for (const u of (data || [])) {
+          const opt = document.createElement("option");
+          opt.value = u.user_id;
+          opt.textContent = `${u.user_id} (${u.role})`;
+          sel.appendChild(opt);
+        }
+      }
+
+      async function loadStickersSelect() {
+        const sel = el("awSticker");
+        sel.innerHTML = "";
+
+        const optNone = document.createElement("option");
+        optNone.value = "";
+        optNone.textContent = "No sticker";
+        sel.appendChild(optNone);
+
+        const stickers = StickerStore.all().filter(s => s.is_active);
+        for (const s of stickers) {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = s.label;
+          sel.appendChild(opt);
+        }
+      }
+
+      async function award() {
+        if (!Role.owner()) return UI.toast("Only owner can award allowance.");
+
+        const created_by = await Auth.getUserId();
+        if (!created_by) return UI.toast("Not signed in.");
+
+        const user_id = el("awUser").value;
+        const amount = Helpers.toNumberRequired(el("awAmount").value);
+        const sticker_id = el("awSticker").value || null;
+        const message = (el("awMessage").value || "").trim();
+
+        // You said: allowance is purely so owner can reward allowance with stickers + message.
+        // Enforce required amount and message.
+        if (!user_id) return UI.toast("Recipient is required.");
+        if (amount === null) return UI.toast("Amount is required.");
+        if (!message) return UI.toast("Message is required.");
+
+        const payload = {
+          user_id,
+          amount,
+          reason: "Allowance Award",
+          message,
+          sticker_id,
+          created_by
+        };
+
+        const { error } = await Supa.client.from("allowance_ledger").insert(payload);
+        if (error) return UI.toast(error.message);
+
+        el("awAmount").value = "";
+        el("awMessage").value = "";
+        el("awSticker").value = "";
       }
 
       async function loadLedger() {
@@ -339,21 +576,21 @@
           row.className = "list-row";
 
           const left = document.createElement("div");
-          left.className = "pr-left";
+          left.className = "card-left";
 
-          const t = document.createElement("div");
-          t.className = "pr-title";
-          t.textContent = `${it.reason || "Ledger entry"} (${it.amount >= 0 ? "+" : ""}${Helpers.fmt(it.amount)})`;
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = `${it.reason || "Ledger"} (${it.amount >= 0 ? "+" : ""}${Number(it.amount).toFixed(2)})`;
 
           const meta = document.createElement("div");
           meta.className = "muted small";
-          meta.textContent = `user: ${it.user_id} • by: ${it.created_by} • ${new Date(it.created_at).toLocaleString()}`;
+          meta.textContent = `user: ${it.user_id} • ${new Date(it.created_at).toLocaleString()}`;
 
           const msg = document.createElement("div");
           msg.className = "muted small";
-          msg.textContent = it.message ? `msg: ${it.message}` : "";
+          msg.textContent = it.message ? `message: ${it.message}` : "";
 
-          left.appendChild(t);
+          left.appendChild(title);
           left.appendChild(meta);
           if (it.message) left.appendChild(msg);
 
@@ -362,123 +599,327 @@
         }
       }
 
-      async function loadMembersIntoSelect() {
-        const sel = el("awUser");
-        sel.innerHTML = "";
-
-        const { data, error } = await Supa.client
-          .from("app_members")
-          .select("user_id,role")
-          .order("role", { ascending: true });
-
-        if (error) return UI.toast(error.message);
-
-        for (const u of (data || [])) {
-          const opt = document.createElement("option");
-          opt.value = u.user_id;
-          opt.textContent = `${u.user_id} (${u.role})`;
-          sel.appendChild(opt);
-        }
-      }
-
-      async function loadStickersIntoSelect() {
-        const sel = el("awSticker");
-        sel.innerHTML = "";
-
-        const optNone = document.createElement("option");
-        optNone.value = "";
-        optNone.textContent = "No sticker";
-        sel.appendChild(optNone);
-
-        const { data, error } = await Supa.client
-          .from("stickers")
-          .select("id,label,is_active,sort_order")
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true });
-
-        if (error) return UI.toast(error.message);
-
-        for (const s of (data || [])) {
-          const opt = document.createElement("option");
-          opt.value = s.id;
-          opt.textContent = s.label;
-          sel.appendChild(opt);
-        }
-      }
-
-      async function award() {
-        const created_by = await Auth.getUserId();
-        if (!created_by) return UI.toast("Not signed in.");
-
-        const user_id = el("awUser").value;
-        const amount = Helpers.toNumberOrNull(el("awAmount").value);
-        if (amount === null) return UI.toast("Amount must be a number.");
-
-        const reason = (el("awReason").value || "").trim() || "Allowance";
-        const message = (el("awMessage").value || "").trim() || null;
-        const sticker_id = el("awSticker").value || null;
-
-        const payload = { user_id, amount, reason, message, sticker_id, created_by };
-
-        const { error } = await Supa.client
-          .from("allowance_ledger")
-          .insert(payload);
-
-        if (error) return UI.toast(error.message);
-
-        el("awAmount").value = "";
-        el("awReason").value = "";
-        el("awMessage").value = "";
-        el("awSticker").value = "";
-      }
-
       function wire() {
         document.getElementById("btnAward").addEventListener("click", award);
       }
 
-      function subscribeRealtime() {
-        const ch1 = Supa.client.channel("rt-allowance-ledger");
-        ch1.on("postgres_changes", { event: "*", schema: "public", table: "allowance_ledger" }, async () => {
-          await loadBalances();
-          await loadLedger();
-        });
-        ch1.subscribe();
-
-        const ch2 = Supa.client.channel("rt-stickers-allowance");
-        ch2.on("postgres_changes", { event: "*", schema: "public", table: "stickers" }, () => loadStickersIntoSelect());
-        ch2.subscribe();
-      }
-
-      return { loadBalances, loadLedger, loadMembersIntoSelect, loadStickersIntoSelect, wire, subscribeRealtime };
+      return { loadMyBalance, loadBalances, loadMembersSelect, loadStickersSelect, loadLedger, wire };
     })();
 
-    // Stickers list (read-only, managed in Supabase)
-    const Stickers = (() => {
-      const BUCKET = "stickers";
+    // =========================
+    // STICKER BOOK DISPLAY
+    // =========================
+    const Stickerbook = (() => {
+      async function loadStickerAwards() {
+        const { data, error } = await Supa.client
+          .from("allowance_ledger")
+          .select("id,user_id,amount,message,sticker_id,created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
 
-      function publicUrl(path) {
-        if (!path) return null;
-        const { data } = Supa.client.storage.from(BUCKET).getPublicUrl(path);
-        return data?.publicUrl || null;
+        if (error) return UI.toast(error.message);
+
+        const root = document.getElementById("stickerbookList");
+        root.innerHTML = "";
+
+        const awards = (data || []).filter(x => x.message && x.message.trim().length);
+
+        if (!awards.length) {
+          root.innerHTML = `<div class="muted">No sticker awards yet.</div>`;
+          return;
+        }
+
+        for (const a of awards) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "award-row";
+
+          const st = a.sticker_id ? StickerStore.get(a.sticker_id) : null;
+          const imgUrl = a.sticker_id ? StickerStore.urlForStickerId(a.sticker_id) : null;
+
+          if (imgUrl) {
+            const img = document.createElement("img");
+            img.className = "sticker-img";
+            img.src = imgUrl;
+            img.alt = st?.label || "sticker";
+            left.appendChild(img);
+          }
+
+          const text = document.createElement("div");
+          text.className = "card-left";
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = `${st?.label ? st.label + " • " : ""}${Helpers.fmtMoney(a.amount)}`;
+
+          const msg = document.createElement("div");
+          msg.className = "muted";
+          msg.textContent = a.message || "";
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = `${new Date(a.created_at).toLocaleString()}`;
+
+          text.appendChild(title);
+          text.appendChild(msg);
+          text.appendChild(meta);
+
+          left.appendChild(text);
+          row.appendChild(left);
+          root.appendChild(row);
+        }
       }
 
-      async function load() {
+      async function loadStickerOptions() {
+        const root = document.getElementById("stickerOptionsList");
+        root.innerHTML = "";
+
+        const stickers = StickerStore.all();
+        if (!stickers.length) {
+          root.innerHTML = `<div class="muted">No stickers found. Add rows in Supabase table <code>stickers</code>.</div>`;
+          return;
+        }
+
+        for (const s of stickers) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "award-row";
+
+          const imgUrl = StickerStore.urlForStickerId(s.id);
+          if (imgUrl) {
+            const img = document.createElement("img");
+            img.className = "sticker-img";
+            img.src = imgUrl;
+            img.alt = s.label;
+            left.appendChild(img);
+          }
+
+          const text = document.createElement("div");
+          text.className = "card-left";
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = s.label;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = `Active: ${s.is_active ? "yes" : "no"} • sort: ${s.sort_order}${s.image_path ? " • image: yes" : ""}`;
+
+          text.appendChild(title);
+          text.appendChild(meta);
+
+          left.appendChild(text);
+          row.appendChild(left);
+          root.appendChild(row);
+        }
+      }
+
+      return { loadStickerAwards, loadStickerOptions };
+    })();
+
+    // =========================
+    // PURCHASE REQUESTS (your exact logic)
+    // =========================
+    const PR = (() => {
+      let currentLane = "pending";
+
+      function laneName(status) {
+        if (status === "pending") return "pending";
+        if (status === "approved") return "approved";
+        if (status === "denied") return "denied";
+        if (status === "wishlist") return "wishlist";
+        return "pending";
+      }
+
+      function pill(status, pleaseCount) {
+        const d = document.createElement("div");
+        d.className = "pill";
+        const img = document.createElement("img");
+        img.src = (status === "pending") ? ICONS.status.pending
+          : (status === "approved") ? ICONS.status.approved
+          : ICONS.status.denied;
+
+        const t = document.createElement("span");
+        t.textContent = status.toUpperCase() + (pleaseCount >= 1 ? " • PLEASE" : "");
+
+        d.appendChild(img);
+        d.appendChild(t);
+        return d;
+      }
+
+      function metaText(it) {
+        return `Cost: ${it.cost} • Shipping: ${it.shipping_cost} • Sale End: ${it.sale_end_date} • Want: ${it.want_scale}`;
+      }
+
+      async function loadAll() {
         const { data, error } = await Supa.client
-          .from("stickers")
-          .select("id,label,image_path,is_active,sort_order,created_at")
-          .order("sort_order", { ascending: true })
+          .from("purchase_requests")
+          .select("*")
           .order("created_at", { ascending: false });
 
         if (error) return UI.toast(error.message);
-        render(data || []);
+
+        const items = data || [];
+        const pending = items.filter(x => laneName(x.status) === "pending");
+        const approved = items.filter(x => laneName(x.status) === "approved");
+        const denied = items.filter(x => laneName(x.status) === "denied");
+        const wishlist = items.filter(x => laneName(x.status) === "wishlist");
+
+        document.getElementById("countPending").textContent = `(${pending.length})`;
+        document.getElementById("countApproved").textContent = `(${approved.length})`;
+        document.getElementById("countDenied").textContent = `(${denied.length})`;
+
+        renderLane(currentLane, { pending, approved, denied });
+        renderWishlist(wishlist);
       }
 
-      function render(items) {
-        const root = document.getElementById("stList");
+      function attachLaneButtons() {
+        const laneBtns = Array.from(document.querySelectorAll(".lane-btn"));
+        laneBtns.forEach(b => b.addEventListener("click", () => {
+          laneBtns.forEach(x => x.classList.remove("active"));
+          b.classList.add("active");
+          currentLane = b.getAttribute("data-lane");
+          loadAll();
+        }));
+      }
+
+      async function updateStatus(it, status) {
+        const payload = { status };
+        const { error } = await Supa.client
+          .from("purchase_requests")
+          .update(payload)
+          .eq("id", it.id);
+
+        if (error) UI.toast(error.message);
+      }
+
+      async function pleaseOnce(it) {
+        const current = it.please_count || 0;
+        if (current >= 1) return UI.toast("PLEASE can only be used once.");
+
+        const { error } = await Supa.client
+          .from("purchase_requests")
+          .update({ status: "pending", please_count: 1 })
+          .eq("id", it.id);
+
+        if (error) UI.toast(error.message);
+      }
+
+      function renderLane(lane, groups) {
+        const root = document.getElementById("prLaneList");
+        root.innerHTML = "";
+
+        let list = [];
+        if (lane === "pending") list = groups.pending;
+        if (lane === "approved") list = groups.approved;
+        if (lane === "denied") list = groups.denied;
+
+        if (!list.length) {
+          root.innerHTML = `<div class="muted">No items in this section.</div>`;
+          return;
+        }
+
+        for (const it of list) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "card-left";
+
+          const status = laneName(it.status);
+          left.appendChild(pill(status, it.please_count || 0));
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = it.title;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = metaText(it);
+
+          const link = document.createElement("a");
+          link.className = "link small";
+          link.href = it.link;
+          link.textContent = "Open link";
+          link.target = "_blank";
+          link.rel = "noreferrer";
+
+          left.appendChild(title);
+          left.appendChild(meta);
+          left.appendChild(link);
+
+          const right = document.createElement("div");
+          right.className = "pr-actions";
+
+          if (status === "pending") {
+            const approve = document.createElement("button");
+            approve.className = "btn btn-primary btn-icon";
+            approve.innerHTML = `<img src="${ICONS.actions.approve}" alt="">Approve`;
+            approve.onclick = () => updateStatus(it, "approved");
+
+            const deny = document.createElement("button");
+            deny.className = "btn btn-danger btn-icon";
+            deny.innerHTML = `<img src="${ICONS.actions.deny}" alt="">Deny`;
+            deny.onclick = () => updateStatus(it, "denied");
+
+            // Owner-only
+            if (!Role.owner()) {
+              approve.disabled = true;
+              deny.disabled = true;
+              approve.title = "Owner only";
+              deny.title = "Owner only";
+            }
+
+            right.appendChild(approve);
+            right.appendChild(deny);
+          }
+
+          if (status === "approved") {
+            // Undo -> Denied (either user)
+            const undo = document.createElement("button");
+            undo.className = "btn btn-ghost";
+            undo.textContent = "Undo";
+            undo.onclick = () => updateStatus(it, "denied");
+            right.appendChild(undo);
+          }
+
+          if (status === "denied") {
+            // Wishlist (other user can do this) + PLEASE (once)
+            const wl = document.createElement("button");
+            wl.className = "btn btn-ghost btn-icon";
+            wl.innerHTML = `<img src="${ICONS.actions.wishlist}" alt="">Wishlist`;
+            wl.onclick = () => updateStatus(it, "wishlist");
+
+            const please = document.createElement("button");
+            please.className = "btn btn-primary btn-icon";
+            please.innerHTML = `<img src="${ICONS.actions.please}" alt="">PLEASE :(`;
+            please.onclick = () => pleaseOnce(it);
+
+            if ((it.please_count || 0) >= 1) {
+              please.disabled = true;
+              please.title = "Already used";
+            }
+
+            right.appendChild(wl);
+            right.appendChild(please);
+          }
+
+          row.appendChild(left);
+          row.appendChild(right);
+          root.appendChild(row);
+        }
+      }
+
+      function renderWishlist(items) {
+        const root = document.getElementById("wlList");
         root.innerHTML = "";
 
         if (!items.length) {
-          root.innerHTML = `<div class="muted">No stickers yet. Add rows in Supabase -> Table Editor -> stickers.</div>`;
+          root.innerHTML = `<div class="muted">No items in wishlist.</div>`;
           return;
         }
 
@@ -487,48 +928,147 @@
           row.className = "list-row";
 
           const left = document.createElement("div");
-          left.className = "pr-left";
-
-          const top = document.createElement("div");
-          top.style.display = "flex";
-          top.style.gap = "10px";
-          top.style.alignItems = "center";
-
-          const imgUrl = publicUrl(it.image_path);
-          if (imgUrl) {
-            const img = document.createElement("img");
-            img.src = imgUrl;
-            img.alt = it.label || "sticker";
-            img.className = "img40";
-            top.appendChild(img);
-          }
+          left.className = "card-left";
 
           const title = document.createElement("div");
           title.className = "pr-title";
-          title.textContent = it.label;
-          top.appendChild(title);
+          title.textContent = it.title;
 
+          const days = Helpers.daysSince(it.wishlist_at);
           const meta = document.createElement("div");
           meta.className = "muted small";
-          meta.textContent = `Active: ${it.is_active ? "yes" : "no"} • sort: ${it.sort_order}${it.image_path ? " • image: yes" : ""}`;
+          meta.textContent = `${metaText(it)} • Days in wishlist: ${days}`;
 
-          left.appendChild(top);
+          const link = document.createElement("a");
+          link.className = "link small";
+          link.href = it.link;
+          link.textContent = "Open link";
+          link.target = "_blank";
+          link.rel = "noreferrer";
+
+          left.appendChild(title);
           left.appendChild(meta);
+          left.appendChild(link);
+
+          const right = document.createElement("div");
+          right.className = "pr-actions";
+
+          const please = document.createElement("button");
+          please.className = "btn btn-primary btn-icon";
+          please.innerHTML = `<img src="${ICONS.actions.please}" alt="">PLEASE :(`;
+          please.onclick = () => pleaseOnce(it);
+
+          if ((it.please_count || 0) >= 1) {
+            please.disabled = true;
+            please.title = "Already used";
+          }
+
+          right.appendChild(please);
 
           row.appendChild(left);
+          row.appendChild(right);
           root.appendChild(row);
         }
       }
 
-      function subscribeRealtime() {
-        const channel = Supa.client.channel("rt-stickers");
-        channel.on("postgres_changes", { event: "*", schema: "public", table: "stickers" }, () => load());
-        channel.subscribe();
+      async function submit() {
+        const title = (document.getElementById("prTitle").value || "").trim();
+        const cost = Helpers.toNumberRequired(document.getElementById("prCost").value);
+        const link = (document.getElementById("prLink").value || "").trim();
+        const shipping = Helpers.toNumberRequired(document.getElementById("prShip").value);
+        const saleEnd = (document.getElementById("prSaleEnd").value || "").trim();
+        const want = Helpers.toIntRequired(document.getElementById("prWant").value);
+
+        const userId = await Auth.getUserId();
+        if (!userId) return UI.toast("Not signed in.");
+
+        // Your rule: none optional
+        if (!title) return UI.toast("Title is required.");
+        if (cost === null) return UI.toast("Cost is required.");
+        if (!link) return UI.toast("Link is required.");
+        if (shipping === null) return UI.toast("Shipping is required.");
+        if (!saleEnd) return UI.toast("Sale End Date is required.");
+        if (want === null || want < 1 || want > 10) return UI.toast("Want Scale (1-10) is required.");
+
+        const payload = {
+          title,
+          link,
+          cost,
+          shipping_cost: shipping,
+          sale_end_date: saleEnd,
+          want_scale: want,
+          status: "pending",
+          created_by: userId,
+          please_count: 0
+        };
+
+        const { error } = await Supa.client.from("purchase_requests").insert(payload);
+        if (error) return UI.toast(error.message);
+
+        document.getElementById("prTitle").value = "";
+        document.getElementById("prCost").value = "";
+        document.getElementById("prLink").value = "";
+        document.getElementById("prShip").value = "";
+        document.getElementById("prSaleEnd").value = "";
+        document.getElementById("prWant").value = "";
       }
 
-      return { load, subscribeRealtime };
+      function wire() {
+        attachLaneButtons();
+        document.getElementById("btnSubmitPR").addEventListener("click", submit);
+      }
+
+      function subscribeRealtime() {
+        const ch = Supa.client.channel("rt-pr");
+        ch.on("postgres_changes", { event: "*", schema: "public", table: "purchase_requests" }, () => loadAll());
+        ch.subscribe();
+      }
+
+      return { wire, loadAll, subscribeRealtime };
     })();
 
+    // =========================
+    // REALTIME
+    // =========================
+    function subscribeOtherRealtime() {
+      const ch1 = Supa.client.channel("rt-ledger");
+      ch1.on("postgres_changes", { event: "*", schema: "public", table: "allowance_ledger" }, async () => {
+        await Allowance.loadMyBalance();
+        await Allowance.loadBalances();
+        await Allowance.loadLedger();
+        await Stickerbook.loadStickerAwards();
+      });
+      ch1.subscribe();
+
+      const ch2 = Supa.client.channel("rt-stickers");
+      ch2.on("postgres_changes", { event: "*", schema: "public", table: "stickers" }, async () => {
+        await StickerStore.refresh();
+        await Allowance.loadStickersSelect();
+        await Stickerbook.loadStickerOptions();
+        await Stickerbook.loadStickerAwards();
+      });
+      ch2.subscribe();
+    }
+
+    async function refreshAll() {
+      await StickerStore.refresh();
+      await Role.load();
+
+      await Allowance.loadMyBalance();
+      await Allowance.loadBalances();
+      await Allowance.loadMembersSelect();
+      await Allowance.loadStickersSelect();
+      await Allowance.loadLedger();
+
+      await Stickerbook.loadStickerAwards();
+      await Stickerbook.loadStickerOptions();
+
+      await PR.loadAll();
+    }
+
+    // =========================
+    // BOOT
+    // =========================
     (async () => {
       const ok = await Auth.requireSessionOrRedirect();
       if (!ok) return;
@@ -538,16 +1078,10 @@
       PR.wire();
       Allowance.wire();
 
-      await PR.load();
-      await Allowance.loadBalances();
-      await Allowance.loadLedger();
-      await Allowance.loadMembersIntoSelect();
-      await Allowance.loadStickersIntoSelect();
-      await Stickers.load();
+      await refreshAll();
 
       PR.subscribeRealtime();
-      Allowance.subscribeRealtime();
-      Stickers.subscribeRealtime();
+      subscribeOtherRealtime();
     })();
   </script>
 </body>
