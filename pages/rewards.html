@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rewards</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    .tabbtn { padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); cursor:pointer; color: var(--text); }
+    .tabbtn.active { border-color: rgba(79,140,255,0.55); background: rgba(79,140,255,0.18); }
+    .tab { display:none; }
+    .tab.active { display:block; }
+    .img40 { width:40px; height:40px; border-radius:10px; object-fit:cover; border:1px solid rgba(255,255,255,0.10); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="link" href="../index.html">← Home</a>
+    <div class="spacer"></div>
+    <span id="authStatus" class="muted"></span>
+    <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Rewards</h1>
+      <p class="muted">One page for Purchase Requests, Allowance, and Sticker Book.</p>
+
+      <div class="tabs">
+        <button class="tabbtn active" data-tab="prTab">Purchase Requests</button>
+        <button class="tabbtn" data-tab="allowTab">Allowance</button>
+        <button class="tabbtn" data-tab="stTab">Sticker Book</button>
+      </div>
+    </section>
+
+    <section class="card tab active" id="prTab">
+      <h2>Purchase Requests</h2>
+
+      <div class="grid-2">
+        <div>
+          <label class="label">Title</label>
+          <input id="prTitle" class="input" placeholder="What do you want?" />
+        </div>
+        <div>
+          <label class="label">Link (optional)</label>
+          <input id="prLink" class="input" placeholder="https://..." />
+        </div>
+        <div>
+          <label class="label">Cost</label>
+          <input id="prCost" class="input" placeholder="19.99" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="label">Shipping (optional)</label>
+          <input id="prShip" class="input" placeholder="0.00" inputmode="decimal" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="btnSubmitPR" class="btn btn-primary">Submit</button>
+      </div>
+
+      <div id="prList" class="list"></div>
+    </section>
+
+    <section class="card tab" id="allowTab">
+      <h2>Allowance</h2>
+      <p class="muted small">Balances come from <code>allowance_balances</code>. Ledger writes are owner-only.</p>
+
+      <div class="kpi" id="balances"></div>
+
+      <hr class="sep" />
+
+      <h3>Award allowance (owner)</h3>
+
+      <div class="grid-2">
+        <div>
+          <label class="label">Recipient</label>
+          <select id="awUser" class="select"></select>
+        </div>
+
+        <div>
+          <label class="label">Amount</label>
+          <input id="awAmount" class="input" placeholder="5.00" inputmode="decimal" />
+        </div>
+
+        <div>
+          <label class="label">Sticker (optional)</label>
+          <select id="awSticker" class="select"></select>
+        </div>
+
+        <div>
+          <label class="label">Reason</label>
+          <input id="awReason" class="input" placeholder="Good job" />
+        </div>
+      </div>
+
+      <label class="label">Message (optional)</label>
+      <textarea id="awMessage" class="textarea" placeholder="Nice work today!"></textarea>
+
+      <div class="row">
+        <button id="btnAward" class="btn btn-primary">Award</button>
+      </div>
+
+      <hr class="sep" />
+
+      <h3>Ledger</h3>
+      <div id="ledger" class="list"></div>
+    </section>
+
+    <section class="card tab" id="stTab">
+      <h2>Sticker Book</h2>
+      <p class="muted small">Owners can add and manage stickers, including uploading an image from your device.</p>
+
+      <div class="grid-2">
+        <div>
+          <label class="label">Label</label>
+          <input id="stLabel" class="input" placeholder="Gold Star" />
+        </div>
+
+        <div>
+          <label class="label">Emoji (optional)</label>
+          <input id="stEmoji" class="input" placeholder="⭐" />
+        </div>
+
+        <div>
+          <label class="label">Sticker image (optional)</label>
+          <input id="stFile" class="input" type="file" accept="image/*" />
+          <div class="muted small">Uploads to Supabase Storage bucket: <code>stickers</code></div>
+        </div>
+
+        <div>
+          <label class="label">Sort order</label>
+          <input id="stSort" class="input" placeholder="0" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="btnAddSticker" class="btn btn-primary">Add sticker</button>
+      </div>
+
+      <div id="stList" class="list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    // Tabs
+    (function(){
+      const btns = Array.from(document.querySelectorAll(".tabbtn"));
+      btns.forEach(b => b.addEventListener("click", () => {
+        btns.forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        const id = b.getAttribute("data-tab");
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+      }));
+    })();
+
+    const Helpers = (() => {
+      function toNumberOrNull(v) {
+        const s = (v || "").trim();
+        if (!s) return null;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      }
+      function toInt(v, def = 0) {
+        const n = parseInt((v || "").trim(), 10);
+        return Number.isFinite(n) ? n : def;
+      }
+      function fmt(n) {
+        if (n === null || n === undefined) return "";
+        const num = Number(n);
+        if (!Number.isFinite(num)) return String(n);
+        return num.toFixed(2);
+      }
+      return { toNumberOrNull, toInt, fmt };
+    })();
+
+    const PR = (() => {
+      const el = (id) => document.getElementById(id);
+
+      async function load() {
+        const { data, error } = await Supa.client
+          .from("purchase_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) return UI.toast(error.message);
+        render(data || []);
+      }
+
+      function render(items) {
+        const root = el("prList");
+        root.innerHTML = "";
+
+        if (!items.length) {
+          root.innerHTML = `<div class="muted">No requests yet.</div>`;
+          return;
+        }
+
+        for (const it of items) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "pr-left";
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = it.title;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          const cost = it.cost ?? "";
+          const ship = it.shipping_cost ?? "";
+          meta.textContent = `Status: ${it.status} • Cost: ${cost}${ship !== "" ? " • Shipping: " + ship : ""}${it.deducted ? " • deducted" : ""}`;
+
+          const link = document.createElement("a");
+          link.className = "link small";
+          link.href = it.link || "#";
+          link.textContent = it.link ? "Open link" : "";
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          if (!it.link) link.style.display = "none";
+
+          left.appendChild(title);
+          left.appendChild(meta);
+          left.appendChild(link);
+
+          const right = document.createElement("div");
+          right.className = "pr-actions";
+
+          const btnWishlist = document.createElement("button");
+          btnWishlist.className = "btn btn-ghost";
+          btnWishlist.textContent = "Wishlist";
+          btnWishlist.onclick = () => setStatus(it.id, "wishlist");
+
+          const btnApprove = document.createElement("button");
+          btnApprove.className = "btn btn-primary";
+          btnApprove.textContent = "Approve";
+          btnApprove.onclick = () => setStatus(it.id, "approved");
+
+          const btnDeny = document.createElement("button");
+          btnDeny.className = "btn btn-danger";
+          btnDeny.textContent = "Deny";
+          btnDeny.onclick = () => setStatus(it.id, "denied");
+
+          right.appendChild(btnWishlist);
+          right.appendChild(btnApprove);
+          right.appendChild(btnDeny);
+
+          row.appendChild(left);
+          row.appendChild(right);
+          root.appendChild(row);
+        }
+      }
+
+      async function setStatus(id, status) {
+        const { error } = await Supa.client
+          .from("purchase_requests")
+          .update({ status })
+          .eq("id", id);
+
+        if (error) UI.toast(error.message);
+      }
+
+      async function submit() {
+        const title = (el("prTitle").value || "").trim();
+        if (!title) return UI.toast("Title is required.");
+
+        const userId = await Auth.getUserId();
+        if (!userId) return UI.toast("Not signed in.");
+
+        const link = (el("prLink").value || "").trim() || null;
+        const cost = Helpers.toNumberOrNull(el("prCost").value);
+        const shipping_cost = Helpers.toNumberOrNull(el("prShip").value);
+
+        const payload = { title, link, cost, shipping_cost, status: "pending", created_by: userId };
+
+        const { error } = await Supa.client
+          .from("purchase_requests")
+          .insert(payload);
+
+        if (error) return UI.toast(error.message);
+
+        el("prTitle").value = "";
+        el("prLink").value = "";
+        el("prCost").value = "";
+        el("prShip").value = "";
+      }
+
+      function wire() {
+        el("btnSubmitPR").addEventListener("click", submit);
+      }
+
+      function subscribeRealtime() {
+        const channel = Supa.client.channel("rt-pr");
+        channel.on("postgres_changes", { event: "*", schema: "public", table: "purchase_requests" }, () => load());
+        channel.subscribe();
+      }
+
+      return { load, wire, subscribeRealtime };
+    })();
+
+    const Allowance = (() => {
+      const el = (id) => document.getElementById(id);
+
+      async function loadBalances() {
+        const { data, error } = await Supa.client
+          .from("allowance_balances")
+          .select("*")
+          .order("user_id", { ascending: true });
+
+        if (error) return UI.toast(error.message);
+
+        const root = el("balances");
+        root.innerHTML = "";
+
+        if (!data || !data.length) {
+          root.innerHTML = `<div class="muted">No balances yet.</div>`;
+          return;
+        }
+
+        for (const b of data) {
+          const box = document.createElement("div");
+          box.className = "box";
+          box.innerHTML = `
+            <div class="muted small">User</div>
+            <div class="small">${b.user_id}</div>
+            <div class="muted small" style="margin-top:10px;">Balance</div>
+            <div class="value">$${Helpers.fmt(b.balance)}</div>
+          `;
+          root.appendChild(box);
+        }
+      }
+
+      async function loadLedger() {
+        const { data, error } = await Supa.client
+          .from("allowance_ledger")
+          .select("id,user_id,amount,reason,message,sticker_id,created_by,created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        if (error) return UI.toast(error.message);
+
+        const root = el("ledger");
+        root.innerHTML = "";
+
+        if (!data || !data.length) {
+          root.innerHTML = `<div class="muted">No ledger entries yet.</div>`;
+          return;
+        }
+
+        for (const it of data) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "pr-left";
+
+          const t = document.createElement("div");
+          t.className = "pr-title";
+          t.textContent = `${it.reason || "Ledger entry"} (${it.amount >= 0 ? "+" : ""}${Helpers.fmt(it.amount)})`;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = `user: ${it.user_id} • by: ${it.created_by} • ${new Date(it.created_at).toLocaleString()}`;
+
+          const msg = document.createElement("div");
+          msg.className = "muted small";
+          msg.textContent = it.message ? `msg: ${it.message}` : "";
+
+          left.appendChild(t);
+          left.appendChild(meta);
+          if (it.message) left.appendChild(msg);
+
+          row.appendChild(left);
+          root.appendChild(row);
+        }
+      }
+
+      async function loadMembersIntoSelect() {
+        const sel = el("awUser");
+        sel.innerHTML = "";
+
+        const { data, error } = await Supa.client
+          .from("app_members")
+          .select("user_id,role")
+          .order("role", { ascending: true });
+
+        if (error) return UI.toast(error.message);
+
+        for (const u of (data || [])) {
+          const opt = document.createElement("option");
+          opt.value = u.user_id;
+          opt.textContent = `${u.user_id} (${u.role})`;
+          sel.appendChild(opt);
+        }
+      }
+
+      async function loadStickersIntoSelect() {
+        const sel = el("awSticker");
+        sel.innerHTML = "";
+
+        const optNone = document.createElement("option");
+        optNone.value = "";
+        optNone.textContent = "No sticker";
+        sel.appendChild(optNone);
+
+        const { data, error } = await Supa.client
+          .from("stickers")
+          .select("id,label,emoji,is_active,sort_order")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
+
+        if (error) return UI.toast(error.message);
+
+        for (const s of (data || [])) {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = `${s.emoji ? s.emoji + " " : ""}${s.label}`;
+          sel.appendChild(opt);
+        }
+      }
+
+      async function award() {
+        const created_by = await Auth.getUserId();
+        if (!created_by) return UI.toast("Not signed in.");
+
+        const user_id = el("awUser").value;
+        const amount = Helpers.toNumberOrNull(el("awAmount").value);
+        if (amount === null) return UI.toast("Amount must be a number.");
+
+        const reason = (el("awReason").value || "").trim() || "Allowance";
+        const message = (el("awMessage").value || "").trim() || null;
+        const sticker_id = el("awSticker").value || null;
+
+        const payload = { user_id, amount, reason, message, sticker_id, created_by };
+
+        const { error } = await Supa.client
+          .from("allowance_ledger")
+          .insert(payload);
+
+        if (error) return UI.toast(error.message);
+
+        el("awAmount").value = "";
+        el("awReason").value = "";
+        el("awMessage").value = "";
+        el("awSticker").value = "";
+      }
+
+      function wire() {
+        document.getElementById("btnAward").addEventListener("click", award);
+      }
+
+      function subscribeRealtime() {
+        const ch1 = Supa.client.channel("rt-allowance-ledger");
+        ch1.on("postgres_changes", { event: "*", schema: "public", table: "allowance_ledger" }, async () => {
+          await loadBalances();
+          await loadLedger();
+        });
+        ch1.subscribe();
+
+        const ch2 = Supa.client.channel("rt-stickers-allowance");
+        ch2.on("postgres_changes", { event: "*", schema: "public", table: "stickers" }, () => loadStickersIntoSelect());
+        ch2.subscribe();
+      }
+
+      return { loadBalances, loadLedger, loadMembersIntoSelect, loadStickersIntoSelect, wire, subscribeRealtime };
+    })();
+
+    const Stickers = (() => {
+      const el = (id) => document.getElementById(id);
+      const BUCKET = "stickers";
+
+      function extFromFileName(name) {
+        const m = String(name || "").match(/\.([a-zA-Z0-9]+)$/);
+        return m ? m[1].toLowerCase() : "png";
+      }
+
+      function publicUrl(path) {
+        if (!path) return null;
+        const { data } = Supa.client.storage.from(BUCKET).getPublicUrl(path);
+        return data?.publicUrl || null;
+      }
+
+      async function uploadSelectedFile() {
+        const file = el("stFile")?.files?.[0];
+        if (!file) return null;
+
+        const id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+        const ext = extFromFileName(file.name);
+        const objectPath = `${id}.${ext}`;
+
+        const { error } = await Supa.client.storage.from(BUCKET).upload(objectPath, file, {
+          upsert: true,
+          contentType: file.type || "image/*"
+        });
+
+        if (error) {
+          UI.toast(error.message);
+          return null;
+        }
+        return objectPath;
+      }
+
+      async function load() {
+        const { data, error } = await Supa.client
+          .from("stickers")
+          .select("*")
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
+
+        if (error) return UI.toast(error.message);
+        render(data || []);
+      }
+
+      function render(items) {
+        const root = document.getElementById("stList");
+        root.innerHTML = "";
+
+        if (!items.length) {
+          root.innerHTML = `<div class="muted">No stickers yet.</div>`;
+          return;
+        }
+
+        for (const it of items) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "pr-left";
+
+          const top = document.createElement("div");
+          top.style.display = "flex";
+          top.style.gap = "10px";
+          top.style.alignItems = "center";
+
+          const imgUrl = publicUrl(it.image_path);
+          if (imgUrl) {
+            const img = document.createElement("img");
+            img.src = imgUrl;
+            img.alt = it.label || "sticker";
+            img.className = "img40";
+            top.appendChild(img);
+          }
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = `${it.emoji ? it.emoji + " " : ""}${it.label}`;
+          top.appendChild(title);
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = `Active: ${it.is_active ? "yes" : "no"} • sort: ${it.sort_order}${it.image_path ? " • image: yes" : ""}`;
+
+          left.appendChild(top);
+          left.appendChild(meta);
+
+          const right = document.createElement("div");
+          right.className = "pr-actions";
+
+          const btnToggle = document.createElement("button");
+          btnToggle.className = "btn btn-ghost";
+          btnToggle.textContent = it.is_active ? "Deactivate" : "Activate";
+          btnToggle.onclick = () => toggleActive(it.id, !it.is_active);
+
+          const btnReplace = document.createElement("button");
+          btnReplace.className = "btn btn-primary";
+          btnReplace.textContent = "Replace image";
+          btnReplace.onclick = () => replaceImage(it);
+
+          const btnEdit = document.createElement("button");
+          btnEdit.className = "btn btn-ghost";
+          btnEdit.textContent = "Edit text";
+          btnEdit.onclick = () => editSticker(it);
+
+          const btnDelete = document.createElement("button");
+          btnDelete.className = "btn btn-danger";
+          btnDelete.textContent = "Delete";
+          btnDelete.onclick = () => del(it.id);
+
+          right.appendChild(btnToggle);
+          right.appendChild(btnReplace);
+          right.appendChild(btnEdit);
+          right.appendChild(btnDelete);
+
+          row.appendChild(left);
+          row.appendChild(right);
+          root.appendChild(row);
+        }
+      }
+
+      async function add() {
+        const label = (el("stLabel").value || "").trim();
+        if (!label) return UI.toast("Label is required.");
+
+        const emoji = (el("stEmoji").value || "").trim() || null;
+        const sort_order = Helpers.toInt(el("stSort").value, 0);
+        const image_path = await uploadSelectedFile();
+
+        const { error } = await Supa.client
+          .from("stickers")
+          .insert({ label, emoji, image_path, sort_order, is_active: true });
+
+        if (error) return UI.toast(error.message);
+
+        el("stLabel").value = "";
+        el("stEmoji").value = "";
+        el("stSort").value = "";
+        el("stFile").value = "";
+      }
+
+      async function toggleActive(id, is_active) {
+        const { error } = await Supa.client.from("stickers").update({ is_active }).eq("id", id);
+        if (error) UI.toast(error.message);
+      }
+
+      async function editSticker(it) {
+        const newLabel = prompt("Label:", it.label);
+        if (newLabel === null) return;
+
+        const newEmoji = prompt("Emoji (optional):", it.emoji || "");
+        if (newEmoji === null) return;
+
+        const newSort = prompt("Sort order:", String(it.sort_order ?? 0));
+        if (newSort === null) return;
+
+        const payload = {
+          label: (newLabel || "").trim() || it.label,
+          emoji: (newEmoji || "").trim() || null,
+          sort_order: Helpers.toInt(newSort, it.sort_order ?? 0)
+        };
+
+        const { error } = await Supa.client.from("stickers").update(payload).eq("id", it.id);
+        if (error) UI.toast(error.message);
+      }
+
+      async function replaceImage(it) {
+        const picker = document.createElement("input");
+        picker.type = "file";
+        picker.accept = "image/*";
+
+        picker.onchange = async () => {
+          const file = picker.files?.[0];
+          if (!file) return;
+
+          const id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+          const ext = extFromFileName(file.name);
+          const objectPath = `${id}.${ext}`;
+
+          const { error: upErr } = await Supa.client.storage.from(BUCKET).upload(objectPath, file, {
+            upsert: true,
+            contentType: file.type || "image/*"
+          });
+          if (upErr) return UI.toast(upErr.message);
+
+          const { error } = await Supa.client.from("stickers").update({ image_path: objectPath }).eq("id", it.id);
+          if (error) UI.toast(error.message);
+        };
+
+        picker.click();
+      }
+
+      async function del(id) {
+        if (!confirm("Delete this sticker?")) return;
+        const { error } = await Supa.client.from("stickers").delete().eq("id", id);
+        if (error) UI.toast(error.message);
+      }
+
+      function wire() {
+        document.getElementById("btnAddSticker").addEventListener("click", add);
+      }
+
+      function subscribeRealtime() {
+        const channel = Supa.client.channel("rt-stickers");
+        channel.on("postgres_changes", { event: "*", schema: "public", table: "stickers" }, () => load());
+        channel.subscribe();
+      }
+
+      return { load, wire, subscribeRealtime };
+    })();
+
+    (async () => {
+      const ok = await Auth.requireSessionOrRedirect();
+      if (!ok) return;
+
+      await Auth.initHeaderUI();
+
+      PR.wire();
+      Allowance.wire();
+      Stickers.wire();
+
+      await PR.load();
+      await Allowance.loadBalances();
+      await Allowance.loadLedger();
+      await Allowance.loadMembersIntoSelect();
+      await Allowance.loadStickersIntoSelect();
+      await Stickers.load();
+
+      PR.subscribeRealtime();
+      Allowance.subscribeRealtime();
+      Stickers.subscribeRealtime();
+    })();
+  </script>
+</body>
+</html>
