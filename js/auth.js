@@ -27,10 +27,10 @@ window.Auth = (() => {
   }
 
   async function signInWithPasswordPrompt() {
-    const email = prompt("Email:");
+    const email = await UI.prompt("Enter your account email.", "", "Sign In", "name@example.com");
     if (!email) return;
 
-    const password = prompt("Password:");
+    const password = await UI.prompt("Enter your password.", "", "Sign In", "Password", "password");
     if (!password) return;
 
     const { error } = await Supa.client.auth.signInWithPassword({ email, password });
@@ -41,8 +41,9 @@ window.Auth = (() => {
     }
 
     // If the user doesn't exist yet, offer to sign up.
-    const wantsSignup = confirm(
-      "Sign-in failed. If this is your first time, click OK to create the account with this email/password."
+    const wantsSignup = await UI.confirm(
+      "Sign-in failed. If this is your first time, create an account with this email and password?",
+      "Create Account"
     );
     if (!wantsSignup) {
       UI.toast(error.message);
