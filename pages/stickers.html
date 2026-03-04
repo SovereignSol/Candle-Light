@@ -160,16 +160,21 @@
       }
 
       async function editSticker(it) {
-        const newLabel = prompt("Label:", it.label);
+        const newLabel = await UI.prompt("Sticker label", it.label, "Edit Sticker", "Label");
         if (newLabel === null) return;
 
-        const newEmoji = prompt("Emoji (optional):", it.emoji || "");
+        const newEmoji = await UI.prompt("Emoji (optional)", it.emoji || "", "Edit Sticker", "Emoji");
         if (newEmoji === null) return;
 
-        const newImage = prompt("Image path (optional):", it.image_path || "");
+        const newImage = await UI.prompt(
+          "Image path (optional)",
+          it.image_path || "",
+          "Edit Sticker",
+          "stickers/file.webp"
+        );
         if (newImage === null) return;
 
-        const newSort = prompt("Sort order:", String(it.sort_order ?? 0));
+        const newSort = await UI.prompt("Sort order", String(it.sort_order ?? 0), "Edit Sticker", "0");
         if (newSort === null) return;
 
         const payload = {
@@ -188,7 +193,8 @@
       }
 
       async function del(id) {
-        if (!confirm("Delete this sticker?")) return;
+        const ok = await UI.confirm("Delete this sticker?", "Delete Sticker");
+        if (!ok) return;
 
         const { error } = await Supa.client
           .from("stickers")
