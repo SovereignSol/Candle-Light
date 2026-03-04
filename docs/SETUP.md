@@ -14,9 +14,17 @@
 ## 3) Database
 - Run `/supabase/schema.sql` in Supabase SQL Editor.
 
+## 3.1) Storage bucket (for sticker images)
+- Create a Storage bucket named `stickers`.
+- Upload sticker image files and store their relative file path in `stickers.image_path`.
+
 ## 4) App config
 - Put your Supabase Project URL and anon key into `/js/config.js`.
 
 ## 5) Add members
 - After each person signs in once, add their `auth.users.id` into `app_members`.
 - Until a user is listed in `app_members`, RLS will block reads and writes.
+
+## 6) Pages
+- Primary app page: `/pages/rewards.html`.
+- Home entry: `/index.html`.
