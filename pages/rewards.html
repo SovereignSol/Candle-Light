@@ -8,8 +8,10 @@
   <style>
     .top-tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     .top-tab { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); cursor:pointer; color: var(--text); }
+    .top-tab.big-tab { font-size: 16px; font-weight: 700; padding: 14px 16px; }
     .top-tab.active { border-color: rgba(79,140,255,0.55); background: rgba(79,140,255,0.18); }
     .top-tab img { width:18px; height:18px; object-fit:contain; }
+    .top-tab.big-tab img { width:22px; height:22px; }
     .panel { display:none; }
     .panel.active { display:block; }
     .pr-hero { position: relative; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 16px; background: linear-gradient(to bottom, rgba(10,15,20,0.55), rgba(10,15,20,0.82)), url("../images/purchase_bg.webp"); background-size: cover; background-position: center; margin-top: 12px; }
@@ -45,12 +47,11 @@
   </header>
   <main class="container">
     <section class="card">
-      <h1>Rewards</h1>
       <div class="top-tabs">
         <button class="top-tab active" data-panel="panelPR"><img src="../icons/tab_purchase.webp" alt="">Purchase Requests</button>
-        <button class="top-tab" data-panel="panelAllowance"><img src="../icons/tab_allowance.webp" alt="">Allowance</button>
-        <button class="top-tab" data-panel="panelStickerbook"><img src="../icons/tab_stickerbook.webp" alt="">Sticker Book</button>
-        <button class="top-tab" data-panel="panelWishlist"><img src="../icons/tab_wishlist.webp" alt="">Wishlist</button>
+        <button class="top-tab big-tab" data-panel="panelAllowance"><img src="../icons/tab_allowance.webp" alt="">Allowance</button>
+        <button class="top-tab big-tab" data-panel="panelStickerbook"><img src="../icons/tab_stickerbook.webp" alt="">Sticker Book</button>
+        <button class="top-tab big-tab" data-panel="panelWishlist"><img src="../icons/tab_wishlist.webp" alt="">Wishlist</button>
       </div>
     </section>
 
