@@ -8,6 +8,7 @@ window.Auth = (() => {
 
   function isBypassed() {
     const raw = localStorage.getItem(DEV_MODE_KEY);
+    if (!CONFIG_BYPASS && raw === "true") return false;
     if (raw === "true") return true;
     if (raw === "false") return false;
     return CONFIG_BYPASS;
