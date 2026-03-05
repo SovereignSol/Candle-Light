@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="link" href="../index.html">← Menu</a>
+    <a class="link" href="./rewards.html">← Back to Menu</a>
     <div class="spacer"></div>
     <span id="authStatus" class="muted"></span>
     <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
@@ -71,6 +71,102 @@
   <script>
     const Allowance = (() => {
       const el = (id) => document.getElementById(id);
+      const STICKER_MANIFEST_URL = "../help/stickers_manifest.json";
+      let stickerManifest = null;
+      let ownerUserId = null;
+      let memberUserId = null;
+
+      async function refreshRoleUsers() {
+        const { data, error } = await Supa.client
+          .from("app_members")
+          .select("user_id,role");
+
+        if (error) {
+          ownerUserId = null;
+          memberUserId = null;
+          return;
+        }
+
+        ownerUserId = (data || []).find((x) => x.role === "owner")?.user_id || null;
+        memberUserId = (data || []).find((x) => x.role === "member")?.user_id || (data || []).find((x) => x.role !== "owner")?.user_id || null;
+      }
+
+      function displayNameForUser(uid) {
+        if (!uid) return "Unknown";
+        if (uid === ownerUserId) return "Daddy";
+        if (uid === memberUserId) return "BabyGirl";
+        return uid;
+      }
+
+      function prettyLabelFromPath(path) {
+        const raw = (path || "").split("/").pop() || "Sticker";
+        const noExt = raw.replace(/\.[^.]+$/, "");
+        return noExt.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+      }
+
+      async function loadStickerManifest() {
+        if (stickerManifest) return stickerManifest;
+
+        const res = await fetch(STICKER_MANIFEST_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Sticker manifest missing (${res.status})`);
+
+        const json = await res.json();
+        const list = Array.isArray(json) ? json : Array.isArray(json?.stickers) ? json.stickers : [];
+
+        stickerManifest = list
+          .map((s, idx) => ({
+            id: s.id || `repo-${idx}`,
+            label: s.label || prettyLabelFromPath(s.imagePath || s.image_path || ""),
+            imagePath: s.imagePath || s.image_path || "",
+            active: s.active !== false,
+            sortOrder: Number.isFinite(Number(s.sortOrder)) ? Number(s.sortOrder) : idx
+          }))
+          .filter((s) => !!s.imagePath);
+
+        return stickerManifest;
+      }
+
+      async function syncManifestStickersToTable(manifest) {
+        const { data: rows, error: readErr } = await Supa.client
+          .from("stickers")
+          .select("image_path")
+          .not("image_path", "is", null);
+        if (readErr) return { error: readErr };
+
+        const existing = new Set((rows || []).map((r) => r.image_path).filter(Boolean));
+        const missing = (manifest || []).filter((m) => !existing.has(m.imagePath));
+        if (!missing.length) return { error: null };
+
+        const payload = missing.map((m) => ({
+          label: m.label || prettyLabelFromPath(m.imagePath),
+          image_path: m.imagePath,
+          is_active: m.active !== false,
+          sort_order: Number.isFinite(Number(m.sortOrder)) ? Number(m.sortOrder) : 0
+        }));
+
+        const { error: insertErr } = await Supa.client.from("stickers").insert(payload);
+        return { error: insertErr || null };
+      }
+
+      function loadLocalPreview() {
+        const balances = el("balances");
+        balances.innerHTML = `
+          <div class="box">
+            <div class="muted small">Member</div>
+            <div class="small">BabyGirl</div>
+            <div class="muted small" style="margin-top:10px;">Balance</div>
+            <div class="value">$42.00</div>
+          </div>
+        `;
+
+        el("ledger").innerHTML = `<div class="muted">Local UI mode: ledger preview only.</div>`;
+
+        const userSel = el("awUser");
+        userSel.innerHTML = `<option value="00000000-0000-0000-0000-000000000002">BabyGirl (member)</option>`;
+
+        const stSel = el("awSticker");
+        stSel.innerHTML = `<option value="">No sticker</option><option value="sample">Gold Star</option>`;
+      }
 
       function fmt(n) {
         if (n === null || n === undefined) return "";
@@ -80,9 +176,17 @@
       }
 
       async function loadBalances() {
+        await refreshRoleUsers();
+        if (!memberUserId) {
+          const root = el("balances");
+          root.innerHTML = `<div class="muted">Member (BabyGirl) not configured in app_members yet.</div>`;
+          return;
+        }
+
         const { data, error } = await Supa.client
           .from("allowance_balances")
           .select("*")
+          .eq("user_id", memberUserId)
           .order("user_id", { ascending: true });
 
         if (error) return UI.toast(error.message);
@@ -99,8 +203,8 @@
           const box = document.createElement("div");
           box.className = "box";
           box.innerHTML = `
-            <div class="muted small">User</div>
-            <div class="small">${b.user_id}</div>
+            <div class="muted small">Member</div>
+            <div class="small">BabyGirl</div>
             <div class="muted small" style="margin-top:10px;">Balance</div>
             <div class="value">$${fmt(b.balance)}</div>
           `;
@@ -109,6 +213,8 @@
       }
 
       async function loadLedger() {
+        await refreshRoleUsers();
+
         const { data, error } = await Supa.client
           .from("allowance_ledger")
           .select("id,user_id,amount,reason,message,sticker_id,created_by,created_at")
@@ -138,7 +244,7 @@
 
           const meta = document.createElement("div");
           meta.className = "muted small";
-          meta.textContent = `user: ${it.user_id} • by: ${it.created_by} • ${new Date(it.created_at).toLocaleString()}`;
+          meta.textContent = `user: ${displayNameForUser(it.user_id)} • by: ${displayNameForUser(it.created_by)} • ${new Date(it.created_at).toLocaleString()}`;
 
           const msg = document.createElement("div");
           msg.className = "muted small";
@@ -154,23 +260,23 @@
       }
 
       async function loadMembersIntoSelect() {
+        await refreshRoleUsers();
+
         const sel = el("awUser");
         sel.innerHTML = "";
 
-        const { data, error } = await Supa.client
-          .from("app_members")
-          .select("user_id,role")
-          .order("role", { ascending: true });
-
-        if (error) return UI.toast(error.message);
-
-        const users = data || [];
-        for (const u of users) {
+        if (!memberUserId) {
           const opt = document.createElement("option");
-          opt.value = u.user_id;
-          opt.textContent = `${u.user_id} (${u.role})`;
+          opt.value = "";
+          opt.textContent = "BabyGirl (member) not found";
           sel.appendChild(opt);
+          return;
         }
+
+        const opt = document.createElement("option");
+        opt.value = memberUserId;
+        opt.textContent = "BabyGirl (member)";
+        sel.appendChild(opt);
       }
 
       async function loadStickersIntoSelect() {
@@ -182,18 +288,49 @@
         optNone.textContent = "No sticker";
         sel.appendChild(optNone);
 
+        let manifest = [];
+        try {
+          manifest = await loadStickerManifest();
+        } catch (e) {
+          UI.toast(`Could not load sticker manifest: ${e.message}`);
+          return;
+        }
+
+        const activeManifest = manifest.filter((m) => m.active !== false);
+        if (!activeManifest.length) {
+          UI.toast("Sticker manifest has no active entries.");
+          return;
+        }
+        const { error: syncErr } = await syncManifestStickersToTable(activeManifest);
+        if (syncErr) {
+          UI.toast(`Could not sync manifest stickers: ${syncErr.message}`);
+          return;
+        }
+
+        const sortByPath = new Map(activeManifest.map((m) => [m.imagePath, m.sortOrder]));
+        const labelByPath = new Map(activeManifest.map((m) => [m.imagePath, m.label]));
+        const manifestPaths = activeManifest.map((m) => m.imagePath);
+
         const { data, error } = await Supa.client
           .from("stickers")
-          .select("id,label,emoji,is_active,sort_order")
+          .select("id,label,is_active,sort_order,image_path")
+          .in("image_path", manifestPaths)
           .eq("is_active", true)
           .order("sort_order", { ascending: true });
 
         if (error) return UI.toast(error.message);
 
-        for (const s of (data || [])) {
+        const rows = (data || []).slice().sort((a, b) => {
+          const sa = Number.isFinite(Number(sortByPath.get(a.image_path))) ? Number(sortByPath.get(a.image_path)) : 9999;
+          const sb = Number.isFinite(Number(sortByPath.get(b.image_path))) ? Number(sortByPath.get(b.image_path)) : 9999;
+          return sa - sb;
+        });
+
+        for (const s of rows) {
           const opt = document.createElement("option");
           opt.value = s.id;
-          opt.textContent = `${s.emoji ? s.emoji + " " : ""}${s.label}`;
+          const label = labelByPath.get(s.image_path) || s.label || prettyLabelFromPath(s.image_path);
+          opt.textContent = `${label} [repo]`;
           sel.appendChild(opt);
         }
       }
@@ -210,6 +347,7 @@
         if (!created_by) return UI.toast("Not signed in.");
 
         const user_id = el("awUser").value;
+        if (!user_id) return UI.toast("BabyGirl member user is not configured.");
         const amount = toNumberOrNull(el("awAmount").value);
         if (amount === null) return UI.toast("Amount must be a number.");
 
@@ -253,7 +391,13 @@
       }
 
       function wire() {
-        el("btnAward").addEventListener("click", award);
+        el("btnAward").addEventListener("click", async () => {
+          if (Auth.isBypassed && Auth.isBypassed()) {
+            UI.toast("Local UI mode: award disabled.");
+            return;
+          }
+          await award();
+        });
       }
 
       return {
@@ -262,7 +406,8 @@
         loadBalances,
         loadLedger,
         loadMembersIntoSelect,
-        loadStickersIntoSelect
+        loadStickersIntoSelect,
+        loadLocalPreview
       };
     })();
 
@@ -273,6 +418,12 @@
       await Auth.initHeaderUI();
 
       Allowance.wire();
+
+      if (Auth.isBypassed && Auth.isBypassed()) {
+        Allowance.loadLocalPreview();
+        return;
+      }
+
       await Allowance.loadBalances();
       await Allowance.loadLedger();
       await Allowance.loadMembersIntoSelect();

@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wishlist</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .well-wrap {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      margin: 6px 0 12px;
+    }
+    .well-visual {
+      width: min(100%, 760px);
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      display: block;
+    }
+    .wish-coin-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      margin: 4px 0 10px;
+    }
+    .wish-coin-bar img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+    .wish-coin-count {
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--text);
+    }
+    .wish-coin-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    #wlList .list-row {
+      border: 0;
+      border-radius: 14px;
+      background: url("../images/purchase_bg_thin.webp") center / 100% 100% no-repeat;
+      min-height: 130px;
+      padding: 16px 18px;
+    }
+    #wlList .pr-title,
+    #wlList .muted,
+    #wlList .link {
+      color: #000000;
+      font-weight: 700;
+    }
+    #wlList .pr-left {
+      margin-left: 32px;
+    }
+    #wlList .pr-actions {
+      min-width: 270px;
+      justify-content: center;
+    }
+    .wl-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 168px;
+      height: 128px;
+      padding: 0;
+      color: #000000;
+    }
+    .wl-action:disabled {
+      color: #000000;
+    }
+    .wl-action .please-icon {
+      width: 112px;
+      height: 112px;
+      object-fit: contain;
+    }
+    .wl-action .coin-icon {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="link" href="./rewards.html">← Back to Menu</a>
+    <div class="spacer"></div>
+    <button id="btnModeToggle" class="btn btn-ghost">Mode</button>
+    <span id="authStatus" class="muted"></span>
+    <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1>Wishlist</h1>
+      <p class="muted">Denied items saved for later. You can use PLEASE once per item.</p>
+
+      <div class="well-wrap">
+        <img id="wellVisual" class="well-visual" src="../images/Wishing_well.webp" alt="Wishing well">
+      </div>
+
+      <div class="wish-coin-bar">
+        <img src="../icons/Wish_coin.webp" alt="Wish coin">
+        <div>
+          <div class="wish-coin-count" id="wishCoinCount">0</div>
+          <div class="wish-coin-label">Wish Coins</div>
+        </div>
+      </div>
+      <div id="wlList" class="list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    const Wishlist = (() => {
+      let currentUserId = "guest";
+      let wishCoins = 0;
+      let isMember = false;
+
+      async function refreshRole() {
+        const uid = await Auth.getUserId();
+        if (!uid) {
+          isMember = false;
+          return;
+        }
+
+        const { data, error } = await Supa.client
+          .from("app_members")
+          .select("role")
+          .eq("user_id", uid)
+          .maybeSingle();
+
+        if (error) {
+          isMember = false;
+          return;
+        }
+        isMember = data?.role !== "owner";
+      }
+
+      function currentMonthKey() {
+        const d = new Date();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        return `${d.getFullYear()}-${m}`;
+      }
+
+      function monthDiff(fromKey, toKey) {
+        if (!/^\d{4}-\d{2}$/.test(fromKey) || !/^\d{4}-\d{2}$/.test(toKey)) return 0;
+        const [fy, fm] = fromKey.split("-").map(Number);
+        const [ty, tm] = toKey.split("-").map(Number);
+        return Math.max(0, (ty - fy) * 12 + (tm - fm));
+      }
+
+      function coinStorageKey() {
+        return `wishCoins:${currentUserId}`;
+      }
+
+      function coinMonthKey() {
+        return `wishCoins:lastMonth:${currentUserId}`;
+      }
+
+      function usedCoinKey() {
+        return `wishCoins:used:${currentUserId}`;
+      }
+
+      function usedPleaseKey() {
+        return `please:usedMonth:${currentUserId}`;
+      }
+
+      function setCoinCount(n) {
+        wishCoins = Math.max(0, n);
+        const el = document.getElementById("wishCoinCount");
+        if (el) el.textContent = String(wishCoins);
+      }
+
+      function loadAndAccrueCoins() {
+        const storeKey = coinStorageKey();
+        const lastMonthStoreKey = coinMonthKey();
+        const nowKey = currentMonthKey();
+
+        const rawCoins = localStorage.getItem(storeKey);
+        const rawMonth = localStorage.getItem(lastMonthStoreKey);
+
+        if (rawCoins === null || !rawMonth) {
+          localStorage.setItem(storeKey, "10");
+          localStorage.setItem(lastMonthStoreKey, nowKey);
+          setCoinCount(10);
+          return;
+        }
+
+        let coins = Number.parseInt(rawCoins, 10);
+        if (!Number.isFinite(coins) || coins < 0) coins = 0;
+
+        const add = monthDiff(rawMonth, nowKey);
+        if (add > 0) {
+          coins += add;
+          localStorage.setItem(storeKey, String(coins));
+          localStorage.setItem(lastMonthStoreKey, nowKey);
+        }
+
+        setCoinCount(coins);
+      }
+
+      function saveCoins() {
+        localStorage.setItem(coinStorageKey(), String(wishCoins));
+      }
+
+      function readUsedMap() {
+        try {
+          const raw = localStorage.getItem(usedCoinKey());
+          if (!raw) return {};
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === "object" ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+
+      function writeUsedMap(map) {
+        localStorage.setItem(usedCoinKey(), JSON.stringify(map || {}));
+      }
+
+      function readPleaseMap() {
+        try {
+          const raw = localStorage.getItem(usedPleaseKey());
+          if (!raw) return {};
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === "object" ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+
+      function writePleaseMap(map) {
+        localStorage.setItem(usedPleaseKey(), JSON.stringify(map || {}));
+      }
+
+      function markWishCoinUsed(itemId) {
+        if (!itemId) return;
+        const map = readUsedMap();
+        map[itemId] = true;
+        writeUsedMap(map);
+      }
+
+      function canUsePleaseThisMonth(itemId) {
+        const map = readPleaseMap();
+        return map[itemId] !== currentMonthKey();
+      }
+
+      function markPleaseUsedThisMonth(itemId) {
+        const map = readPleaseMap();
+        map[itemId] = currentMonthKey();
+        writePleaseMap(map);
+      }
+
+      function playCoinFlip() {
+        try {
+          const flip = new Audio("../sfx/Coin.flip.mp3");
+          const drop = new Audio("../sfx/Waterdrop.mp3");
+
+          const playDrop = () => {
+            drop.play().catch(() => {});
+          };
+
+          flip.addEventListener("ended", playDrop, { once: true });
+          flip.addEventListener("error", playDrop, { once: true });
+          flip.play().catch(playDrop);
+        } catch {}
+      }
+
+      function playWellUsedAnimation() {
+        const img = document.getElementById("wellVisual");
+        if (!img) return;
+        img.src = "../images/Wish_used.webp";
+        setTimeout(() => {
+          img.src = "../images/Wishing_well.webp";
+        }, 1400);
+      }
+
+      async function useWishCoinForItem(it) {
+        if (!isMember) {
+          UI.toast("Only the member can use Wish Coin.");
+          return;
+        }
+
+        if (wishCoins <= 0) {
+          UI.toast("No Wish Coins available.");
+          return;
+        }
+
+        const ok = await UI.confirm("Use Wish Coin?", "Wish Coin");
+        if (!ok) return;
+
+        playCoinFlip();
+        playWellUsedAnimation();
+
+        const moved = await moveItemToPending(it, "wish_coin");
+        if (!moved) return;
+
+        wishCoins -= 1;
+        if (wishCoins < 0) wishCoins = 0;
+        saveCoins();
+        setCoinCount(wishCoins);
+
+        markWishCoinUsed(it.id);
+        await load();
+      }
+
+      async function usePleaseForItem(it) {
+        if (!isMember) {
+          UI.toast("Only the member can use PLEASE.");
+          return;
+        }
+
+        if (!canUsePleaseThisMonth(it.id)) {
+          UI.toast("PLEASE can only be used once per month for this item.");
+          return;
+        }
+
+        const moved = await moveItemToPending(it, "please");
+        if (!moved) return;
+
+        markPleaseUsedThisMonth(it.id);
+        await load();
+      }
+
+      async function moveItemToPending(it, method) {
+        const methodLabel = method === "wish_coin" ? "wish coin" : "please";
+
+        const payloadCandidates = [
+          {
+            status: "pending",
+            please_count: (Number(it.please_count) || 0) + 1,
+            return_to_pending_reason: methodLabel,
+            returned_to_pending_at: new Date().toISOString()
+          },
+          {
+            status: "pending",
+            please_count: (Number(it.please_count) || 0) + 1
+          },
+          {
+            status: "pending"
+          }
+        ];
+
+        let lastError = null;
+        for (const payload of payloadCandidates) {
+          const { error } = await Supa.client
+            .from("purchase_requests")
+            .update(payload)
+            .eq("id", it.id);
+
+          if (!error) return true;
+          lastError = error;
+        }
+
+        UI.toast(lastError?.message || "Could not move item back to pending.");
+        return false;
+      }
+
+      async function initWishCoins() {
+        const uid = await Auth.getUserId();
+        currentUserId = uid || "guest";
+        await refreshRole();
+        loadAndAccrueCoins();
+      }
+
+      function daysSince(ts) {
+        if (!ts) return 0;
+        const t = new Date(ts).getTime();
+        if (!Number.isFinite(t)) return 0;
+        const diff = Date.now() - t;
+        return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+      }
+
+      function metaText(it) {
+        return `Cost: ${it.cost} • Shipping: ${it.shipping_cost} • Sale End: ${it.sale_end_date} • Want: ${it.want_scale}`;
+      }
+
+      function loadLocalPreview() {
+        const root = document.getElementById("wlList");
+        root.innerHTML = `
+          <div class="list-row">
+            <div class="pr-left">
+              <div class="pr-title">Sample Wishlist Item</div>
+              <div class="muted small">Cost: 24.99 • Shipping: 3.99 • Sale End: 2026-12-31 • Want: 8 • Days in wishlist: 4</div>
+              <a class="link small" href="#" onclick="return false;">Open link</a>
+            </div>
+            <div class="pr-actions">
+              <button class="btn btn-primary wl-action"><img class="please-icon" src="../icons/btn_please.webp" alt=""></button>
+              <button class="btn btn-primary wl-action"><img class="coin-icon" src="../icons/Wish_coin.webp" alt=""></button>
+            </div>
+          </div>
+        `;
+
+        const buttons = root.querySelectorAll(".wl-action");
+        buttons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            UI.toast("Local preview mode: switch to live data to use actions.");
+          });
+        });
+      }
+
+      async function load() {
+        const { data, error } = await Supa.client
+          .from("purchase_requests")
+          .select("*")
+          .eq("status", "wishlist")
+          .order("created_at", { ascending: false });
+
+        if (error) return UI.toast(error.message);
+        render(data || []);
+      }
+
+      function render(items) {
+        const root = document.getElementById("wlList");
+        root.innerHTML = "";
+
+        if (!items.length) {
+          root.innerHTML = `<div class="muted">No items in wishlist.</div>`;
+          return;
+        }
+
+        for (const it of items) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+
+          const left = document.createElement("div");
+          left.className = "pr-left";
+
+          const title = document.createElement("div");
+          title.className = "pr-title";
+          title.textContent = it.title;
+
+          const meta = document.createElement("div");
+          meta.className = "muted small";
+          meta.textContent = `${metaText(it)} • Days in wishlist: ${daysSince(it.wishlist_at)}`;
+
+          const link = document.createElement("a");
+          link.className = "link small";
+          link.href = it.link || "#";
+          link.textContent = it.link ? "Open link" : "";
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          if (!it.link) link.style.display = "none";
+
+          left.appendChild(title);
+          left.appendChild(meta);
+          left.appendChild(link);
+
+          const right = document.createElement("div");
+          right.className = "pr-actions";
+
+          const please = document.createElement("button");
+          please.className = "btn btn-primary wl-action";
+          please.innerHTML = `<img class="please-icon" src="../icons/btn_please.webp" alt="">`;
+          please.onclick = () => usePleaseForItem(it);
+
+          const wishCoin = document.createElement("button");
+          wishCoin.className = "btn btn-primary wl-action";
+          wishCoin.innerHTML = `<img class="coin-icon" src="../icons/Wish_coin.webp" alt="">`;
+          wishCoin.onclick = () => useWishCoinForItem(it);
+
+          if (!canUsePleaseThisMonth(it.id)) {
+            please.disabled = true;
+            please.title = "PLEASE already used this month";
+          }
+
+          if (!isMember) {
+            please.disabled = true;
+            wishCoin.disabled = true;
+            please.title = "Member only";
+            wishCoin.title = "Member only";
+          }
+
+          if (wishCoins <= 0) {
+            wishCoin.disabled = true;
+            wishCoin.title = "No Wish Coins available";
+          }
+
+          right.appendChild(please);
+          right.appendChild(wishCoin);
+          row.appendChild(left);
+          row.appendChild(right);
+          root.appendChild(row);
+        }
+      }
+
+      function subscribeRealtime() {
+        const ch = Supa.client.channel("rt-wishlist");
+        ch.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "purchase_requests" },
+          () => load()
+        );
+        ch.subscribe();
+      }
+
+      return { load, loadLocalPreview, subscribeRealtime, initWishCoins };
+    })();
+
+    function wireModeToggle() {
+      const btn = document.getElementById("btnModeToggle");
+      if (!btn || !Auth.isBypassed || !Auth.setBypassed) return;
+      const bypassed = Auth.isBypassed();
+      btn.textContent = bypassed ? "Use Live Data" : "Use Local Preview";
+      btn.title = bypassed ? "Switch to Supabase-backed mode" : "Switch to local UI preview mode";
+      btn.addEventListener("click", () => {
+        Auth.setBypassed(!Auth.isBypassed());
+        window.location.reload();
+      });
+    }
+
+    (async () => {
+      const ok = await Auth.requireSessionOrRedirect();
+      if (!ok) return;
+
+      await Auth.initHeaderUI();
+      wireModeToggle();
+      await Wishlist.initWishCoins();
+
+      if (Auth.isBypassed && Auth.isBypassed()) {
+        Wishlist.loadLocalPreview();
+        return;
+      }
+
+      await Wishlist.load();
+      Wishlist.subscribeRealtime();
+    })();
+  </script>
+</body>
+</html>

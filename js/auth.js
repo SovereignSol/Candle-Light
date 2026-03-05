@@ -1,5 +1,21 @@
 window.Auth = (() => {
   const el = (id) => document.getElementById(id);
+  const DEV_MODE_KEY = "DEV_DISABLE_AUTH";
+  const CONFIG_BYPASS = !!(window.APP_CONFIG && window.APP_CONFIG.DEV_DISABLE_AUTH);
+  const DEV_USER_ID =
+    (window.APP_CONFIG && window.APP_CONFIG.DEV_USER_ID) ||
+    "00000000-0000-0000-0000-000000000001";
+
+  function isBypassed() {
+    const raw = localStorage.getItem(DEV_MODE_KEY);
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+    return CONFIG_BYPASS;
+  }
+
+  function setBypassed(nextValue) {
+    localStorage.setItem(DEV_MODE_KEY, nextValue ? "true" : "false");
+  }
 
   function getBasePath() {
     const p = window.location.pathname;
@@ -15,18 +31,38 @@ window.Auth = (() => {
   }
 
   async function getSession() {
+    if (isBypassed()) {
+      return {
+        session: {
+          user: {
+            id: DEV_USER_ID,
+            email: "local-ui-mode@dev.local"
+          }
+        },
+        error: null
+      };
+    }
+
     const { data, error } = await Supa.client.auth.getSession();
     if (error) return { session: null, error };
     return { session: data.session, error: null };
   }
 
   async function getUserId() {
+    if (isBypassed()) return DEV_USER_ID;
+
     const { data, error } = await Supa.client.auth.getUser();
     if (error) return null;
     return data?.user?.id || null;
   }
 
   async function signInWithPasswordPrompt() {
+    if (isBypassed()) {
+      UI.toast("Local UI mode: auth is disabled.");
+      await refreshAuthStatus();
+      return;
+    }
+
     const email = await UI.prompt("Enter your account email.", "", "Sign In", "name@example.com");
     if (!email) return;
 
@@ -56,6 +92,12 @@ window.Auth = (() => {
   }
 
   async function signOut() {
+    if (isBypassed()) {
+      UI.toast("Local UI mode: sign out skipped.");
+      await refreshAuthStatus();
+      return;
+    }
+
     const { error } = await Supa.client.auth.signOut();
     if (error) UI.toast(error.message);
     window.location.href = indexUrl();
@@ -68,9 +110,11 @@ window.Auth = (() => {
     if (btnIn) btnIn.addEventListener("click", signInWithPasswordPrompt);
     if (btnOut) btnOut.addEventListener("click", signOut);
 
-    Supa.client.auth.onAuthStateChange(async () => {
-      await refreshAuthStatus();
-    });
+    if (!isBypassed()) {
+      Supa.client.auth.onAuthStateChange(async () => {
+        await refreshAuthStatus();
+      });
+    }
 
     await refreshAuthStatus();
   }
@@ -89,6 +133,13 @@ window.Auth = (() => {
     const btnIn = el("btnSignIn");
     const btnOut = el("btnSignOut");
 
+    if (isBypassed()) {
+      if (status) status.textContent = "Local UI mode";
+      if (btnIn) btnIn.classList.add("hidden");
+      if (btnOut) btnOut.classList.add("hidden");
+      return;
+    }
+
     const { session } = await getSession();
 
     if (session?.user) {
@@ -103,6 +154,8 @@ window.Auth = (() => {
   }
 
   async function requireSessionOrRedirect() {
+    if (isBypassed()) return true;
+
     for (let i = 0; i < 3; i++) {
       const { session } = await getSession();
       if (session?.user) return true;
@@ -116,6 +169,8 @@ window.Auth = (() => {
     initAuthUI,
     initHeaderUI,
     requireSessionOrRedirect,
-    getUserId
+    getUserId,
+    isBypassed,
+    setBypassed
   };
 })();

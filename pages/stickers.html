@@ -5,10 +5,103 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sticker Book</title>
   <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .sb-book {
+      border: 0;
+      border-radius: 18px;
+      background: url("../images/Stickerbook_ui.webp") center / 100% 100% no-repeat;
+      aspect-ratio: 2047 / 1545;
+      min-height: 0;
+      padding: 22px;
+      color: #111111;
+      margin-top: 10px;
+    }
+    .sb-spread {
+      min-height: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .sb-page {
+      border: 1px solid rgba(0,0,0,0.18);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.32);
+      padding: 14px;
+      min-height: 300px;
+      display: grid;
+      align-content: start;
+    }
+    .sb-page.empty {
+      background: rgba(255,255,255,0.18);
+      border-style: dashed;
+    }
+    .sb-page-content {
+      display: grid;
+      justify-items: center;
+      text-align: center;
+      gap: 12px;
+      align-content: start;
+    }
+    .sb-entry {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      text-align: center;
+      gap: 6px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed rgba(0,0,0,0.18);
+    }
+    .sb-entry:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+    .sb-sticker {
+      width: 140px;
+      height: 140px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 0;
+      background: transparent;
+    }
+    .sb-title {
+      font-weight: 800;
+      font-size: 24px;
+      color: #111111;
+    }
+    .sb-msg {
+      margin-top: 4px;
+      font-size: 16px;
+      color: #1e1e1e;
+      font-weight: 600;
+    }
+    .sb-meta {
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(0,0,0,0.7);
+      font-weight: 700;
+    }
+    .sb-nav {
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .sb-page-info {
+      min-width: 130px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    @media (max-width: 900px) {
+      .sb-spread {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
   <header class="topbar">
-    <a class="link" href="../index.html">← Menu</a>
+    <a class="link" href="./rewards.html">← Back to Menu</a>
     <div class="spacer"></div>
     <span id="authStatus" class="muted"></span>
     <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
@@ -17,6 +110,22 @@
   <main class="container">
     <section class="card">
       <h1>Sticker Book</h1>
+      <p class="muted">Sticker, awarded allowance, and message shown together.</p>
+      <div class="sb-book">
+        <div class="sb-spread">
+          <div id="sbPageLeft" class="sb-page"></div>
+          <div id="sbPageRight" class="sb-page"></div>
+        </div>
+      </div>
+      <div class="row sb-nav">
+        <button id="sbPrev" class="btn btn-ghost">← Prev Page</button>
+        <span id="sbPageInfo" class="sb-page-info">0 / 0</span>
+        <button id="sbNext" class="btn btn-ghost">Next Page →</button>
+      </div>
+
+      <hr class="sep" />
+
+      <h2>Manage Stickers</h2>
       <p class="muted">Owners can add and manage stickers. Members can view.</p>
 
       <div class="grid-2">
@@ -58,6 +167,197 @@
   <script>
     const Stickers = (() => {
       const el = (id) => document.getElementById(id);
+      let stickerMap = new Map();
+      let awardPages = [];
+      let currentAwardPage = 0;
+      const PER_PAGE = 2;
+      const PAGES_PER_SPREAD = 2;
+      const PER_SPREAD = PER_PAGE * PAGES_PER_SPREAD;
+
+      function money(n) {
+        const num = Number(n);
+        if (!Number.isFinite(num)) return "$0.00";
+        return "$" + num.toFixed(2);
+      }
+
+      function localStickerCandidates(path) {
+        if (!path) return [];
+        if (/^https?:\/\//i.test(path)) return [path];
+
+        const out = [];
+        out.push("../" + path.replace(/^\.\//, ""));
+        out.push("../images/" + path.replace(/^\.\//, ""));
+
+        const noPrefix = path.replace(/^images\//i, "");
+        out.push("../images/" + noPrefix);
+
+        const altCase = noPrefix.replace(/^stickers\//i, "Stickers/");
+        out.push("../images/" + altCase);
+
+        return Array.from(new Set(out));
+      }
+
+      function storageUrl(path) {
+        if (!path) return null;
+        const { data } = Supa.client.storage.from("stickers").getPublicUrl(path);
+        return data?.publicUrl || null;
+      }
+
+      function setImageWithFallback(img, urls) {
+        const list = (urls || []).filter(Boolean);
+        if (!list.length) return;
+        let idx = 0;
+        img.src = list[idx];
+        img.onerror = () => {
+          idx += 1;
+          if (idx < list.length) img.src = list[idx];
+        };
+      }
+
+      function loadLocalPreview() {
+        renderAwards([
+          {
+            id: "preview-1",
+            amount: 5,
+            message: "Great focus today. Keep it up!",
+            created_at: new Date().toISOString(),
+            sticker_label: "Barbarian Squirrel",
+            sticker_image_path: "Stickers/chibi_squirrel_barbarian_sticker.webp"
+          },
+          {
+            id: "preview-2",
+            amount: 3,
+            message: "Awesome question on your homework.",
+            created_at: new Date().toISOString(),
+            sticker_label: "Question Trophy",
+            sticker_image_path: "Stickers/chibi_squirrel_question_mark_trophy_sticker.webp"
+          },
+          {
+            id: "preview-3",
+            amount: 7,
+            message: "You crushed your chores this week.",
+            created_at: new Date().toISOString(),
+            sticker_label: "Barbarian Squirrel",
+            sticker_image_path: "Stickers/chibi_squirrel_barbarian_sticker.webp"
+          },
+          {
+            id: "preview-4",
+            amount: 4,
+            message: "Great teamwork and a kind attitude.",
+            created_at: new Date().toISOString(),
+            sticker_label: "Question Trophy",
+            sticker_image_path: "Stickers/chibi_squirrel_question_mark_trophy_sticker.webp"
+          }
+        ]);
+
+        const root = el("stList");
+        root.innerHTML = `
+          <div class="list-row">
+            <div class="pr-left">
+              <div class="pr-title">⭐ Gold Star</div>
+              <div class="muted small">Active: yes • sort: 0 • image: stickers/star.webp</div>
+            </div>
+            <div class="pr-actions">
+              <button class="btn btn-ghost" disabled>Deactivate</button>
+              <button class="btn btn-primary" disabled>Edit</button>
+              <button class="btn btn-danger" disabled>Delete</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function updateBookNav() {
+        const total = awardPages.length;
+        const info = el("sbPageInfo");
+        if (info) {
+          if (!total) info.textContent = "0 / 0";
+          else {
+            const start = currentAwardPage + 1;
+            const end = Math.min(currentAwardPage + PER_SPREAD, total);
+            info.textContent = `${start}-${end} / ${total}`;
+          }
+        }
+
+        const prev = el("sbPrev");
+        const next = el("sbNext");
+        if (prev) prev.disabled = total <= 1 || currentAwardPage <= 0;
+        if (next) next.disabled = total <= PER_SPREAD || currentAwardPage >= total - PER_SPREAD;
+      }
+
+      function renderAwardPage(root, items) {
+        root.innerHTML = "";
+        root.classList.remove("empty");
+
+        const pageItems = items || [];
+        if (!pageItems.length) {
+          root.classList.add("empty");
+          root.innerHTML = `<div class="muted">No page</div>`;
+          return;
+        }
+
+        const content = document.createElement("div");
+        content.className = "sb-page-content";
+
+        for (const a of pageItems) {
+          const entry = document.createElement("div");
+          entry.className = "sb-entry";
+
+          const img = document.createElement("img");
+          img.className = "sb-sticker";
+          img.alt = a.sticker_label || "sticker";
+
+          const urls = [];
+          if (a.sticker_image_path) {
+            urls.push(storageUrl(a.sticker_image_path));
+            urls.push(...localStickerCandidates(a.sticker_image_path));
+          }
+          if (!urls.length) urls.push("../images/Stickers/chibi_squirrel_barbarian_sticker.webp");
+          setImageWithFallback(img, urls);
+
+          const title = document.createElement("div");
+          title.className = "sb-title";
+          title.textContent = `${a.sticker_label || "Sticker"} • ${money(a.amount)}`;
+
+          const msg = document.createElement("div");
+          msg.className = "sb-msg";
+          msg.textContent = a.message || "";
+
+          const meta = document.createElement("div");
+          meta.className = "sb-meta";
+          meta.textContent = new Date(a.created_at).toLocaleString();
+
+          entry.appendChild(img);
+          entry.appendChild(title);
+          entry.appendChild(msg);
+          entry.appendChild(meta);
+          content.appendChild(entry);
+        }
+
+        root.appendChild(content);
+      }
+
+      function renderCurrentPage() {
+        const leftRoot = el("sbPageLeft");
+        const rightRoot = el("sbPageRight");
+        if (!leftRoot || !rightRoot) return;
+
+        if (!awardPages.length) {
+          leftRoot.classList.add("empty");
+          rightRoot.classList.add("empty");
+          leftRoot.innerHTML = `<div class="muted">No sticker awards yet.</div>`;
+          rightRoot.innerHTML = `<div class="muted">No sticker awards yet.</div>`;
+          updateBookNav();
+          return;
+        }
+
+        const leftAward = awardPages.slice(currentAwardPage, currentAwardPage + PER_PAGE);
+        const rightAward = awardPages.slice(currentAwardPage + PER_PAGE, currentAwardPage + PER_SPREAD);
+
+        renderAwardPage(leftRoot, leftAward);
+        renderAwardPage(rightRoot, rightAward);
+
+        updateBookNav();
+      }
 
       function toInt(v, def = 0) {
         const n = parseInt((v || "").trim(), 10);
@@ -72,7 +372,41 @@
           .order("created_at", { ascending: false });
 
         if (error) return UI.toast(error.message);
+        stickerMap = new Map((data || []).map((s) => [s.id, s]));
         render(data || []);
+      }
+
+      async function loadAwards() {
+        const { data, error } = await Supa.client
+          .from("allowance_ledger")
+          .select("id,amount,message,sticker_id,created_at")
+          .order("created_at", { ascending: false })
+          .limit(120);
+
+        if (error) return UI.toast(error.message);
+
+        const rows = (data || []).map((a) => {
+          const st = a.sticker_id ? stickerMap.get(a.sticker_id) : null;
+          return {
+            id: a.id,
+            amount: a.amount,
+            message: a.message,
+            created_at: a.created_at,
+            sticker_label: st?.label || "Sticker",
+            sticker_image_path: st?.image_path || ""
+          };
+        });
+
+        renderAwards(rows);
+      }
+
+      function renderAwards(items) {
+        awardPages = (items || []).filter((x) => x.sticker_image_path && String(x.sticker_image_path).trim().length);
+        if (currentAwardPage >= awardPages.length) {
+          currentAwardPage = Math.max(awardPages.length - PER_SPREAD, 0);
+        }
+        currentAwardPage = Math.max(0, Math.floor(currentAwardPage / PER_SPREAD) * PER_SPREAD);
+        renderCurrentPage();
       }
 
       function render(items) {
@@ -209,16 +543,52 @@
         channel.on(
           "postgres_changes",
           { event: "*", schema: "public", table: "stickers" },
-          () => load()
+          async () => {
+            await load();
+            await loadAwards();
+          }
         );
         channel.subscribe();
+
+        const awardsChannel = Supa.client.channel("rt-sticker-awards");
+        awardsChannel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "allowance_ledger" },
+          () => loadAwards()
+        );
+        awardsChannel.subscribe();
       }
 
       function wire() {
-        el("btnAddSticker").addEventListener("click", add);
+        const prev = el("sbPrev");
+        const next = el("sbNext");
+        if (prev) {
+          prev.addEventListener("click", () => {
+            if (currentAwardPage > 0) {
+              currentAwardPage = Math.max(0, currentAwardPage - PER_SPREAD);
+              renderCurrentPage();
+            }
+          });
+        }
+        if (next) {
+          next.addEventListener("click", () => {
+            if (currentAwardPage < awardPages.length - PER_SPREAD) {
+              currentAwardPage = Math.min(awardPages.length - 1, currentAwardPage + PER_SPREAD);
+              renderCurrentPage();
+            }
+          });
+        }
+
+        el("btnAddSticker").addEventListener("click", async () => {
+          if (Auth.isBypassed && Auth.isBypassed()) {
+            UI.toast("Local UI mode: add sticker disabled.");
+            return;
+          }
+          await add();
+        });
       }
 
-      return { load, wire, subscribeRealtime };
+      return { load, loadAwards, wire, subscribeRealtime, loadLocalPreview };
     })();
 
     (async () => {
@@ -227,7 +597,14 @@
 
       await Auth.initHeaderUI();
       Stickers.wire();
+
+      if (Auth.isBypassed && Auth.isBypassed()) {
+        Stickers.loadLocalPreview();
+        return;
+      }
+
       await Stickers.load();
+      await Stickers.loadAwards();
       Stickers.subscribeRealtime();
     })();
   </script>

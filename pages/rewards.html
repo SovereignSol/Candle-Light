@@ -3,134 +3,135 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rewards</title>
+  <title>Rewards Menu</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
-    .top-tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-    .top-tab { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); cursor:pointer; color: var(--text); }
-    .top-tab.big-tab { font-size: 16px; font-weight: 700; padding: 14px 16px; }
-    .top-tab.active { border-color: rgba(79,140,255,0.55); background: rgba(79,140,255,0.18); }
-    .top-tab img { width:18px; height:18px; object-fit:contain; }
-    .top-tab.big-tab img { width:22px; height:22px; }
-    .panel { display:none; }
-    .panel.active { display:block; }
-    .pr-hero { position: relative; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 16px; background: linear-gradient(to bottom, rgba(10,15,20,0.55), rgba(10,15,20,0.82)), url("../images/purchase_bg.webp"); background-size: cover; background-position: center; margin-top: 12px; }
-    .pr-hero-inner { background: rgba(16,24,38,0.62); border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 14px; backdrop-filter: blur(6px); }
-    .pr-hero-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom: 10px; }
-    .balance-box { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.05); white-space: nowrap; }
-    .balance-box img { width:22px; height:22px; object-fit:contain; }
-    .balance-label { color: var(--muted); font-size: 12px; margin-bottom: 2px; }
-    .balance-value { font-size: 20px; font-weight: 800; }
-    .row-2col { display:grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 860px) { .row-2col { grid-template-columns: 1fr 1fr; } }
-    .lanes { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-    .lane-btn { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); cursor:pointer; color: var(--text); }
-    .lane-btn.active { border-color: rgba(79,140,255,0.55); background: rgba(79,140,255,0.18); }
-    .lane-btn img { width:18px; height:18px; object-fit:contain; }
-    .lane-count { color: var(--muted); font-size: 12px; margin-left: 2px; }
-    .pill { display:inline-flex; align-items:center; gap:6px; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: var(--muted); font-size: 12px; width: fit-content; }
-    .pill img { width: 14px; height: 14px; object-fit:contain; }
-    .btn-icon { display:inline-flex; align-items:center; gap:8px; }
-    .btn-icon img { width:18px; height:18px; object-fit:contain; }
-    .sticker-img { width:52px; height:52px; border-radius:12px; object-fit:cover; border:1px solid rgba(255,255,255,0.10); }
-    .award-row { display:flex; gap:12px; align-items:flex-start; }
-    .card-left { display:grid; gap:4px; }
-    .hint { color: var(--muted); font-size: 12px; }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 8px;
+    }
+    .menu-btn {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: linear-gradient(180deg, rgba(10,16,28,0.98), rgba(7,12,22,0.98));
+      color: var(--text);
+      text-decoration: none;
+      min-height: 320px;
+      overflow: hidden;
+    }
+    .menu-btn:hover {
+      border-color: rgba(79,140,255,0.55);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+    .menu-media {
+      position: relative;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0c1323;
+      min-height: 240px;
+      overflow: hidden;
+    }
+    .menu-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .menu-chip {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.30);
+      background: rgba(14,22,36,0.72);
+      color: #dce7f8;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .menu-text {
+      padding: 2px 6px 6px;
+    }
+    .menu-title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .menu-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    @media (max-width: 900px) {
+      .menu-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <header class="topbar">
     <a class="link" href="../index.html">← Home</a>
     <div class="spacer"></div>
+    <button id="btnModeToggle" class="btn btn-ghost">Mode</button>
     <span id="authStatus" class="muted"></span>
     <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
   </header>
+
   <main class="container">
     <section class="card">
-      <div class="top-tabs">
-        <button class="top-tab active" data-panel="panelPR"><img src="../icons/tab_purchase.webp" alt="">Purchase Requests</button>
-        <button class="top-tab big-tab" data-panel="panelAllowance"><img src="../icons/tab_allowance.webp" alt="">Allowance</button>
-        <button class="top-tab big-tab" data-panel="panelStickerbook"><img src="../icons/tab_stickerbook.webp" alt="">Sticker Book</button>
-        <button class="top-tab big-tab" data-panel="panelWishlist"><img src="../icons/tab_wishlist.webp" alt="">Wishlist</button>
-      </div>
-    </section>
+      <h1 style="margin-top:0;">Main Menu</h1>
+      <p class="muted">Choose an area.</p>
 
-    <section class="card panel active" id="panelPR">
-      <div class="pr-hero">
-        <div class="pr-hero-top">
-          <div>
-            <h2 style="margin:0;">Purchase Requests</h2>
-            <div class="hint">All fields are required: Title, Cost, Link, Shipping, Sale End Date, Want Scale (1-10).</div>
+      <div class="menu-grid">
+        <a class="menu-btn" href="./purchase_requests.html">
+          <div class="menu-media">
+            <img src="../icons/tab_purchase.webp" alt="Purchase Requests">
+            <span class="menu-chip">Tap to open</span>
           </div>
-          <div class="balance-box" title="Your allowance balance">
-            <img src="../icons/tab_allowance.webp" alt="">
-            <div>
-              <div class="balance-label">Allowance</div>
-              <div class="balance-value" id="myBalance">$0.00</div>
-            </div>
+          <div class="menu-text">
+            <div class="menu-title">Purchase Requests</div>
+            <div class="menu-sub">Submit, review, and track requests</div>
           </div>
-        </div>
+        </a>
 
-        <div class="pr-hero-inner">
-          <div class="row-2col">
-            <div><label class="label">Title</label><input id="prTitle" class="input" placeholder="Title" /></div>
-            <div><label class="label">Cost</label><input id="prCost" class="input" placeholder="0.00" inputmode="decimal" /></div>
-            <div><label class="label">Link</label><input id="prLink" class="input" placeholder="https://..." /></div>
-            <div><label class="label">Shipping</label><input id="prShip" class="input" placeholder="0.00" inputmode="decimal" /></div>
-            <div><label class="label">Sale End Date</label><input id="prSaleEnd" class="input" type="date" /></div>
-            <div>
-              <label class="label">Want Scale (1-10)</label>
-              <select id="prWant" class="select">
-                <option value="">Select</option>
-                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
-                <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
-              </select>
-            </div>
+        <a class="menu-btn" href="./allowance.html">
+          <div class="menu-media">
+            <img src="../icons/tab_allowance.webp" alt="Allowance">
+            <span class="menu-chip">Balances</span>
           </div>
-          <div class="row"><button id="btnSubmitPR" class="btn btn-primary">Submit</button></div>
-        </div>
+          <div class="menu-text">
+            <div class="menu-title">Allowance</div>
+            <div class="menu-sub">Balances, awards, and ledger</div>
+          </div>
+        </a>
+
+        <a class="menu-btn" href="./stickers.html">
+          <div class="menu-media">
+            <img src="../icons/tab_stickerbook.webp" alt="Sticker Book">
+            <span class="menu-chip">Collect</span>
+          </div>
+          <div class="menu-text">
+            <div class="menu-title">Sticker Book</div>
+            <div class="menu-sub">Manage and view sticker options</div>
+          </div>
+        </a>
+
+        <a class="menu-btn" href="./wishlist.html">
+          <div class="menu-media">
+            <img src="../icons/tab_wishlist.webp" alt="Wishlist">
+            <span class="menu-chip">Wishes</span>
+          </div>
+          <div class="menu-text">
+            <div class="menu-title">Wishlist</div>
+            <div class="menu-sub">View denied items saved for later</div>
+          </div>
+        </a>
       </div>
-
-      <div class="lanes">
-        <button class="lane-btn active" data-lane="pending"><img src="../icons/status_pending.webp" alt="">Pending Approval <span class="lane-count" id="countPending">(0)</span></button>
-        <button class="lane-btn" data-lane="approved"><img src="../icons/status_approved.webp" alt="">Approved <span class="lane-count" id="countApproved">(0)</span></button>
-        <button class="lane-btn" data-lane="denied"><img src="../icons/status_denied.webp" alt="">Denied <span class="lane-count" id="countDenied">(0)</span></button>
-      </div>
-      <div id="prLaneList" class="list"></div>
-    </section>
-
-    <section class="card panel" id="panelWishlist">
-      <h2>Wishlist</h2>
-      <div class="hint">Shows days in wishlist. Includes PLEASE button (only once) that returns item to Pending Approval.</div>
-      <div id="wlList" class="list"></div>
-    </section>
-
-    <section class="card panel" id="panelAllowance">
-      <h2>Allowance</h2>
-      <div class="hint">Owner awards allowance with optional sticker attached, message is required.</div>
-      <div class="kpi" id="balances"></div>
-      <hr class="sep" />
-      <h3>Award allowance (owner)</h3>
-      <div class="row-2col">
-        <div><label class="label">Recipient</label><select id="awUser" class="select"></select></div>
-        <div><label class="label">Amount</label><input id="awAmount" class="input" placeholder="0.00" inputmode="decimal" /></div>
-        <div><label class="label">Sticker</label><select id="awSticker" class="select"></select></div>
-        <div><label class="label">Message</label><input id="awMessage" class="input" placeholder="Message" /></div>
-      </div>
-      <div class="row"><button id="btnAward" class="btn btn-primary">Award</button></div>
-      <hr class="sep" />
-      <h3>Ledger</h3>
-      <div id="ledger" class="list"></div>
-    </section>
-
-    <section class="card panel" id="panelStickerbook">
-      <h2>Sticker Book</h2>
-      <div class="hint">Displays: sticker, amount, and message attached to allowance awards.</div>
-      <div id="stickerbookList" class="list"></div>
-      <hr class="sep" />
-      <h3>Sticker Options</h3>
-      <div class="hint">Loaded from Supabase table <code>stickers</code> (images from Storage bucket <code>stickers</code>).</div>
-      <div id="stickerOptionsList" class="list"></div>
     </section>
   </main>
 
@@ -139,18 +140,21 @@
   <script src="../js/supabaseClient.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/ui.js"></script>
-
-  <script src="../js/rewards/helpers.js"></script>
-  <script src="../js/rewards/role.js"></script>
-  <script src="../js/rewards/stickers.js"></script>
-  <script src="../js/rewards/allowance.js"></script>
-  <script src="../js/rewards/stickerbook.js"></script>
-  <script src="../js/rewards/purchaseRequests.js"></script>
-  <script src="../js/rewards/realtime.js"></script>
-  <script src="../js/rewards/index.js"></script>
   <script>
+    function wireModeToggle() {
+      const btn = document.getElementById("btnModeToggle");
+      if (!btn || !Auth.isBypassed || !Auth.setBypassed) return;
+      const bypassed = Auth.isBypassed();
+      btn.textContent = bypassed ? "Use Live Data" : "Use Local Preview";
+      btn.addEventListener("click", () => {
+        Auth.setBypassed(!Auth.isBypassed());
+        window.location.reload();
+      });
+    }
+
     (async () => {
-      await RewardsPage.init();
+      await Auth.initHeaderUI();
+      wireModeToggle();
     })();
   </script>
 </body>

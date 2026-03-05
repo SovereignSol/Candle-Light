@@ -14,7 +14,7 @@ window.RewardsStickerbook = (() => {
     if (!root) return;
     root.innerHTML = "";
 
-    const awards = (data || []).filter((x) => x.message && x.message.trim().length);
+    const awards = (data || []).filter((x) => !!x.sticker_id);
     if (!awards.length) {
       root.innerHTML = `<div class="muted">No sticker awards yet.</div>`;
       return;

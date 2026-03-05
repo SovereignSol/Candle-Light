@@ -89,6 +89,118 @@ before update on public.purchase_requests
 for each row
 execute function public.set_wishlist_at_on_status_change();
 
+-- Apply allowance effects for purchase request status changes
+-- Rules:
+-- - When request moves into approved, deduct total (cost + shipping)
+-- - When request moves out of approved into denied/wishlist, refund total
+create or replace function public.apply_purchase_request_allowance_effects()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  total_amount numeric(12,2);
+  actor uuid;
+  available_balance numeric(12,2);
+  member_uid uuid;
+begin
+  if tg_op <> 'UPDATE' then
+    return new;
+  end if;
+
+  if old.status is not distinct from new.status then
+    return new;
+  end if;
+
+  total_amount := coalesce(new.cost, 0) + coalesce(new.shipping_cost, 0);
+  actor := coalesce(auth.uid(), new.created_by, old.created_by);
+
+  -- Prefer the request owner if they are not owner.
+  select m.user_id
+  into member_uid
+  from public.app_members m
+  where m.user_id = new.created_by
+    and m.role <> 'owner'
+  limit 1;
+
+  -- Fallback to any explicit member row.
+  if member_uid is null then
+    select m.user_id
+    into member_uid
+    from public.app_members m
+    where m.role = 'member'
+    limit 1;
+  end if;
+
+  -- Last fallback to any non-owner row.
+  if member_uid is null then
+    select m.user_id
+    into member_uid
+    from public.app_members m
+    where m.role <> 'owner'
+    limit 1;
+  end if;
+
+  if member_uid is null then
+    raise exception 'No member user found for allowance operations'
+      using errcode = 'P0001';
+  end if;
+
+  if new.status = 'approved' and old.status <> 'approved' then
+    select coalesce(b.balance, 0)
+    into available_balance
+    from public.allowance_balances b
+    where b.user_id = member_uid;
+
+    if coalesce(available_balance, 0) < total_amount then
+      raise exception 'Insufficient member allowance balance'
+        using errcode = 'P0001';
+    end if;
+  end if;
+
+  if old.status = 'denied' and new.status = 'approved' then
+    insert into public.allowance_ledger (user_id, amount, reason, message, created_by, created_at)
+    values (
+      member_uid,
+      -total_amount,
+      'Purchase Re-Approved',
+      'PR:' || new.id::text || ' moved from denied to approved',
+      actor,
+      now()
+    );
+  elsif new.status = 'approved' and old.status <> 'approved' then
+    insert into public.allowance_ledger (user_id, amount, reason, message, created_by, created_at)
+    values (
+      member_uid,
+      -total_amount,
+      'Purchase Approved',
+      'PR:' || new.id::text || ' moved to approved',
+      actor,
+      now()
+    );
+  elsif old.status = 'approved' and new.status in ('denied', 'wishlist') then
+    insert into public.allowance_ledger (user_id, amount, reason, message, created_by, created_at)
+    values (
+      member_uid,
+      total_amount,
+      'Purchase Refund',
+      'PR:' || new.id::text || ' moved from approved to ' || new.status,
+      actor,
+      now()
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_purchase_requests_allowance_effects on public.purchase_requests;
+create trigger trg_purchase_requests_allowance_effects
+after update on public.purchase_requests
+for each row
+execute function public.apply_purchase_request_allowance_effects();
+
 -- Keep allowance balances in sync
 create or replace function public.apply_allowance_delta()
 returns trigger
@@ -165,6 +277,40 @@ as $$
   select exists(select 1 from public.app_members m where m.user_id = uid and m.role = 'owner')
 $$;
 
+create or replace function public.can_update_purchase_request(
+  uid uuid,
+  pr_id uuid,
+  new_status text,
+  new_created_by uuid
+)
+returns boolean
+language sql
+stable
+as $$
+  with me as (
+    select m.role
+    from public.app_members m
+    where m.user_id = uid
+  ), old_row as (
+    select p.status, p.created_by
+    from public.purchase_requests p
+    where p.id = pr_id
+  )
+  select exists(
+    select 1
+    from me, old_row
+    where
+      (
+        (me.role = 'owner' and new_status in ('approved', 'denied'))
+        or
+        (me.role = 'member' and old_row.created_by = uid and old_row.status = 'denied' and new_status = 'wishlist')
+        or
+        (me.role = 'member' and old_row.created_by = uid and old_row.status = 'wishlist' and new_status = 'pending')
+      )
+      and new_created_by = old_row.created_by
+  )
+$$;
+
 -- app_members: members can read, owners can write
 drop policy if exists app_members_select_members on public.app_members;
 create policy app_members_select_members
@@ -190,14 +336,22 @@ drop policy if exists pr_insert_members on public.purchase_requests;
 create policy pr_insert_members
 on public.purchase_requests
 for insert
-with check (public.is_member(auth.uid()) and created_by = auth.uid());
+with check (
+  exists(
+    select 1
+    from public.app_members m
+    where m.user_id = auth.uid()
+      and m.role = 'member'
+  )
+  and created_by = auth.uid()
+);
 
 drop policy if exists pr_update_members on public.purchase_requests;
 create policy pr_update_members
 on public.purchase_requests
 for update
 using (public.is_member(auth.uid()))
-with check (public.is_member(auth.uid()));
+with check (public.can_update_purchase_request(auth.uid(), id, status, created_by));
 
 -- stickers
 drop policy if exists stickers_select_members on public.stickers;
@@ -224,7 +378,7 @@ drop policy if exists ledger_owner_insert on public.allowance_ledger;
 create policy ledger_owner_insert
 on public.allowance_ledger
 for insert
-with check (public.is_owner(auth.uid()) and created_by = auth.uid());
+with check (public.is_owner(auth.uid()));
 
 drop policy if exists ledger_owner_update_delete on public.allowance_ledger;
 create policy ledger_owner_update_delete

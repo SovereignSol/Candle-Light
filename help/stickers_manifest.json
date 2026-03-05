@@ -1,0 +1,67 @@
+{
+  "stickers": [
+    {
+      "id": "raccoon-anotha-one",
+      "label": "Raccoon Anotha One",
+      "imagePath": "images/Stickers/raccoon anotha_one.webp",
+      "active": true,
+      "sortOrder": 0
+    },
+    {
+      "id": "lookin-like-a-snack",
+      "label": "Lookin Like A Snack",
+      "imagePath": "images/Stickers/Lookin like a snack.webp",
+      "active": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "imma-kill-somebody",
+      "label": "Imma Kill Somebody",
+      "imagePath": "images/Stickers/Imma Kill somebody.webp",
+      "active": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "lunch-time",
+      "label": "Lunch Time!",
+      "imagePath": "images/Stickers/Lunch Time!.webp",
+      "active": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "road-rage",
+      "label": "Road Rage",
+      "imagePath": "images/Stickers/Road Rage.webp",
+      "active": true,
+      "sortOrder": 4
+    },
+    {
+      "id": "squirrel-rage",
+      "label": "Squirrel Rage",
+      "imagePath": "images/Stickers/Squirrel Rage.webp",
+      "active": true,
+      "sortOrder": 5
+    },
+    {
+      "id": "f-you-wont-do",
+      "label": "F You I Won't Do What You Tell Me",
+      "imagePath": "images/Stickers/Fuck You I Won't Do What You Tell Me.webp",
+      "active": true,
+      "sortOrder": 6
+    },
+    {
+      "id": "squirrelbat-ai-abomination",
+      "label": "Squirrelbat AI Abomination",
+      "imagePath": "images/Stickers/squirrelbat_ai_abomination.webp",
+      "active": true,
+      "sortOrder": 7
+    },
+    {
+      "id": "chibi-squirrel-question-trophy",
+      "label": "Chibi Squirrel Question Trophy",
+      "imagePath": "images/Stickers/chibi_squirrel_question_mark_trophy_sticker.webp",
+      "active": true,
+      "sortOrder": 8
+    }
+  ]
+}
