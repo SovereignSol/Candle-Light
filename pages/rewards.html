@@ -77,7 +77,6 @@
   <header class="topbar">
     <a class="link" href="../index.html">← Home</a>
     <div class="spacer"></div>
-    <button id="btnModeToggle" class="btn btn-ghost">Mode</button>
     <span id="authStatus" class="muted"></span>
     <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
   </header>
@@ -141,20 +140,8 @@
   <script src="../js/auth.js"></script>
   <script src="../js/ui.js"></script>
   <script>
-    function wireModeToggle() {
-      const btn = document.getElementById("btnModeToggle");
-      if (!btn || !Auth.isBypassed || !Auth.setBypassed) return;
-      const bypassed = Auth.isBypassed();
-      btn.textContent = bypassed ? "Use Live Data" : "Use Local Preview";
-      btn.addEventListener("click", () => {
-        Auth.setBypassed(!Auth.isBypassed());
-        window.location.reload();
-      });
-    }
-
     (async () => {
       await Auth.initHeaderUI();
-      wireModeToggle();
     })();
   </script>
 </body>

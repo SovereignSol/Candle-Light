@@ -94,7 +94,6 @@
   <header class="topbar">
     <a class="link" href="./rewards.html">← Back to Menu</a>
     <div class="spacer"></div>
-    <button id="btnModeToggle" class="btn btn-ghost">Mode</button>
     <span id="authStatus" class="muted"></span>
     <button id="btnSignOut" class="btn btn-ghost hidden">Sign out</button>
   </header>
@@ -512,24 +511,11 @@
       return { load, loadLocalPreview, subscribeRealtime, initWishCoins };
     })();
 
-    function wireModeToggle() {
-      const btn = document.getElementById("btnModeToggle");
-      if (!btn || !Auth.isBypassed || !Auth.setBypassed) return;
-      const bypassed = Auth.isBypassed();
-      btn.textContent = bypassed ? "Use Live Data" : "Use Local Preview";
-      btn.title = bypassed ? "Switch to Supabase-backed mode" : "Switch to local UI preview mode";
-      btn.addEventListener("click", () => {
-        Auth.setBypassed(!Auth.isBypassed());
-        window.location.reload();
-      });
-    }
-
     (async () => {
       const ok = await Auth.requireSessionOrRedirect();
       if (!ok) return;
 
       await Auth.initHeaderUI();
-      wireModeToggle();
       await Wishlist.initWishCoins();
 
       if (Auth.isBypassed && Auth.isBypassed()) {
