@@ -7,6 +7,7 @@ Lightwell Rewards is a static web app powered by Supabase Auth, Postgres, Storag
 - Rewards hub page with tabs for Purchase Requests, Allowance, Sticker Book, and Wishlist
 - Role-aware actions (`owner` and `member`) enforced by RLS policies
 - Realtime updates for purchase requests, allowance ledger, stickers, and grocery list
+- Optional web push notification registration (Android + iPhone PWA)
 - Static hosting friendly (GitHub Pages) with no build tool required
 
 ## Project layout
@@ -16,6 +17,7 @@ Lightwell Rewards is a static web app powered by Supabase Auth, Postgres, Storag
 - `pages/*.html` - additional standalone pages
 - `js/auth.js` - auth/session UI and redirects
 - `js/ui.js` - shared toast and modal utilities
+- `js/push.js` - browser push subscription flow
 - `js/rewards/*.js` - rewards page modules
 - `supabase/schema.sql` - starter DB schema, triggers, and RLS policies
 
@@ -38,6 +40,8 @@ Then open `http://localhost:8080`.
 3. Configure Site URL and Redirect URLs for your deployment URL.
 4. Run `supabase/schema.sql` in SQL Editor.
 5. Update `js/config.js` with your project URL and anon key.
-6. Have each user sign in once, then add their `auth.users.id` to `app_members`.
+6. Add your VAPID public key to `js/config.js` (`VAPID_PUBLIC_KEY`).
+7. Have each user sign in once, then add their `auth.users.id` to `app_members`.
 
 See `docs/SETUP.md` for the deployment-oriented version of these steps.
+For push setup, see `docs/PUSH_NOTIFICATIONS.md`.

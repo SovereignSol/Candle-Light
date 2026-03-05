@@ -28,3 +28,10 @@
 ## 6) Pages
 - Primary app page: `/pages/rewards.html`.
 - Home entry: `/index.html`.
+
+## 7) Push notifications (optional)
+- Generate VAPID keys and set `VAPID_PUBLIC_KEY` in `/js/config.js`.
+- Run `supabase/schema.sql` so `push_subscriptions` table/policies exist.
+- Open `/index.html` and click **Enable Notifications**.
+- For iPhone, install the app to Home Screen first, then enable notifications.
+- See `/docs/PUSH_NOTIFICATIONS.md` for full steps.
