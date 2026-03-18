@@ -196,3 +196,83 @@ body {
   font-weight: 800;
   margin-top: 6px;
 }
+
+/* Mobile-friendly tweaks (without affecting desktop layout) */
+@media (max-width: 900px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .authbar {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .container {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 14px;
+    margin: 12px 0;
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .row .input,
+  .row .select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .list-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pr-actions,
+  .list-row .pr-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .pr-actions .btn,
+  .list-row .pr-actions .btn {
+    flex: 1 1 48%;
+    min-width: 140px;
+  }
+
+  .tile {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    padding: 10px 12px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .list-row {
+    padding: 12px;
+  }
+
+  .btn,
+  .input,
+  .select,
+  .textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}

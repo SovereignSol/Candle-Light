@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=1280, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Wishlist</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
@@ -87,6 +87,36 @@
       width: 88px;
       height: 88px;
       object-fit: contain;
+    }
+
+    @media (max-width: 900px) {
+      #wlList .pr-left {
+        margin-left: 0;
+      }
+      #wlList .pr-actions {
+        width: 100%;
+        min-width: 0;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .wl-action {
+        width: 48%;
+        min-width: 140px;
+        height: 100px;
+      }
+      .wl-action .please-icon {
+        width: 88px;
+        height: 88px;
+      }
+      .wl-action .coin-icon {
+        width: 72px;
+        height: 72px;
+      }
+      .wish-coin-bar {
+        width: 100%;
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>

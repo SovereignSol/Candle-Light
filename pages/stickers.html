@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=1280, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sticker Book</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
@@ -95,6 +95,25 @@
     @media (max-width: 900px) {
       .sb-spread {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .sb-book {
+        padding: 14px;
+      }
+      .sb-sticker {
+        width: 110px;
+        height: 110px;
+      }
+      .sb-title {
+        font-size: 20px;
+      }
+      .sb-msg {
+        font-size: 14px;
+      }
+      .sb-page {
+        padding: 12px;
       }
     }
   </style>

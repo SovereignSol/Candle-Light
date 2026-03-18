@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=1280, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Purchase Requests</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -172,6 +172,49 @@
     .lane-count {
       color: var(--muted);
       font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .pr-hero {
+        background-size: cover;
+        min-height: auto;
+        padding: 12px;
+      }
+      .pr-hero-inner {
+        padding: 12px;
+      }
+      .pr-form-title {
+        margin: 40px 0 8px;
+        top: 0;
+        font-size: 32px;
+      }
+      .pr-hero-inner .grid-2 {
+        margin-top: 32px;
+      }
+      .pr-hero-inner .label,
+      .pr-hero-inner .input,
+      .pr-hero-inner .select {
+        width: 100%;
+        min-width: 0;
+        font-size: 18px;
+      }
+      .pr-hero-inner .grid-2 > div {
+        align-items: stretch;
+      }
+      .flat-list .pr-actions {
+        transform: none;
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .flat-list .pr-actions .btn {
+        flex: 1 1 48%;
+        min-width: 140px;
+      }
+      .lane-tabs {
+        gap: 8px;
+      }
     }
   </style>
 </head>

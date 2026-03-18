@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=1280, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rewards Menu</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
@@ -70,6 +70,15 @@
     }
     @media (max-width: 900px) {
       .menu-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .menu-btn {
+        min-height: 220px;
+        padding: 10px;
+      }
+      .menu-title { font-size: 18px; }
+      .menu-sub { font-size: 12px; }
     }
   </style>
 </head>

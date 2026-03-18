@@ -57,6 +57,10 @@ window.Auth = (() => {
     return data?.user?.id || null;
   }
 
+  function normalizeEmail(raw) {
+    return String(raw || "").trim().toLowerCase();
+  }
+
   async function signInWithPasswordPrompt() {
     if (isBypassed()) {
       UI.toast("Local UI mode: auth is disabled.");
@@ -64,32 +68,67 @@ window.Auth = (() => {
       return;
     }
 
-    const email = await UI.prompt("Enter your account email.", "", "Sign In", "name@example.com");
-    if (!email) return;
-
-    const password = await UI.prompt("Enter your password.", "", "Sign In", "Password", "password");
-    if (!password) return;
-
-    const { error } = await Supa.client.auth.signInWithPassword({ email, password });
-
-    if (!error) {
-      UI.toast("Signed in.");
+    const emailInput = await UI.prompt("Enter your account email.", "", "Sign In", "name@example.com");
+    const email = normalizeEmail(emailInput);
+    if (!email) {
+      UI.toast("Email is required.");
       return;
     }
 
-    // If the user doesn't exist yet, offer to sign up.
+    const password = await UI.prompt("Enter your password.", "", "Sign In", "Password", "password");
+    if (!password) {
+      UI.toast("Password is required.");
+      return;
+    }
+
+    const { data: signInData, error: signInError } = await Supa.client.auth.signInWithPassword({ email, password });
+
+    if (!signInError) {
+      UI.toast("Signed in.");
+      await refreshAuthStatus();
+      return;
+    }
+
+    const msg = String(signInError.message || "").toLowerCase();
+
+    if (msg.includes("email not confirmed")) {
+      UI.toast("Email not confirmed yet. Check your inbox for the confirmation email, then try again.");
+      return;
+    }
+
+    if (msg.includes("invalid login credentials")) {
+      UI.toast("Invalid email or password.");
+      return;
+    }
+
     const wantsSignup = await UI.confirm(
-      "Sign-in failed. If this is your first time, create an account with this email and password?",
+      "Sign-in failed. If this is your first time, create a new account with this email and password?",
       "Create Account"
     );
     if (!wantsSignup) {
-      UI.toast(error.message);
+      UI.toast(signInError.message);
       return;
     }
 
-    const { error: signupError } = await Supa.client.auth.signUp({ email, password });
-    if (signupError) UI.toast(signupError.message);
-    else UI.toast("Account created. You are signed in.");
+    const { data: signupData, error: signupError } = await Supa.client.auth.signUp({ email, password });
+
+    if (signupError) {
+      const sMsg = String(signupError.message || "").toLowerCase();
+      if (sMsg.includes("already registered") || sMsg.includes("duplicate key value")) {
+        UI.toast("Account already exists. Try signing in or reset your password.");
+      } else {
+        UI.toast(signupError.message);
+      }
+      return;
+    }
+
+    if (!signupData?.session) {
+      UI.toast("Account created. Check your email to confirm, then sign in.");
+      return;
+    }
+
+    UI.toast("Account created and signed in.");
+    await refreshAuthStatus();
   }
 
   async function signOut() {
