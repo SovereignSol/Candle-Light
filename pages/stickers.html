@@ -97,28 +97,25 @@
         padding: 14px;
       }
       .sb-sticker {
-        width: 20px;
-        height: 20px;
+        width: 48px;
+        height: 48px;
       }
       .sb-title {
-        font-size: 12px;
+        font-size: 14px;
       }
       .sb-msg {
-        font-size: 11px;
+        font-size: 12px;
       }
       .sb-page {
         padding: 8px;
       }
       .sb-entry {
-        grid-auto-flow: column;
-        grid-template-columns: 20px auto;
-        align-items: center;
         gap: 4px;
-        padding: 2px 0;
-        min-height: 30px;
+        padding-bottom: 6px;
+        min-height: 64px;
       }
       .sb-meta {
-        font-size: 10px;
+        font-size: 11px;
       }
     }
   </style>
@@ -146,39 +143,6 @@
         <span id="sbPageInfo" class="sb-page-info">0 / 0</span>
         <button id="sbNext" class="btn btn-ghost">Next Page →</button>
       </div>
-
-      <hr class="sep" />
-
-      <h2>Manage Stickers</h2>
-      <p class="muted">Owners can add and manage stickers. Members can view.</p>
-
-      <div class="grid-2">
-        <div>
-          <label class="label">Label</label>
-          <input id="stLabel" class="input" placeholder="Gold Star" />
-        </div>
-        <div>
-          <label class="label">Emoji (optional)</label>
-          <input id="stEmoji" class="input" placeholder="⭐" />
-        </div>
-        <div>
-          <label class="label">Image path (optional)</label>
-          <input id="stImage" class="input" placeholder="stickers/yourfile.png" />
-        </div>
-        <div>
-          <label class="label">Sort order</label>
-          <input id="stSort" class="input" placeholder="0" inputmode="numeric" />
-        </div>
-      </div>
-
-      <div class="row">
-        <button id="btnAddSticker" class="btn btn-primary">Add sticker</button>
-        <span class="muted small">If you get an RLS error, your user is not an owner in <code>app_members</code>.</span>
-      </div>
-
-      <hr class="sep" />
-
-      <div id="stList" class="list"></div>
     </section>
   </main>
 
@@ -435,6 +399,7 @@
 
       function render(items) {
         const root = el("stList");
+        if (!root) return;
         root.innerHTML = "";
 
         if (!items.length) {
@@ -603,7 +568,10 @@
           });
         }
 
-        el("btnAddSticker").addEventListener("click", async () => {
+        const addBtn = el("btnAddSticker");
+        if (!addBtn) return;
+
+        addBtn.addEventListener("click", async () => {
           if (Auth.isBypassed && Auth.isBypassed()) {
             UI.toast("Local UI mode: add sticker disabled.");
             return;
