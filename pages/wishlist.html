@@ -209,6 +209,10 @@
         return `please:usedMonth:${currentUserId}`;
       }
 
+      function coinPolicyKey() {
+        return `wishCoins:policy:v2:${currentUserId}`;
+      }
+
       function setCoinCount(n) {
         wishCoins = Math.max(0, n);
         const el = document.getElementById("wishCoinCount");
@@ -218,15 +222,25 @@
       function loadAndAccrueCoins() {
         const storeKey = coinStorageKey();
         const lastMonthStoreKey = coinMonthKey();
+        const policyKey = coinPolicyKey();
         const nowKey = currentMonthKey();
 
         const rawCoins = localStorage.getItem(storeKey);
         const rawMonth = localStorage.getItem(lastMonthStoreKey);
+        const policyApplied = localStorage.getItem(policyKey) === "1";
+
+        if (!policyApplied) {
+          localStorage.setItem(storeKey, "1");
+          localStorage.setItem(lastMonthStoreKey, nowKey);
+          localStorage.setItem(policyKey, "1");
+          setCoinCount(1);
+          return;
+        }
 
         if (rawCoins === null || !rawMonth) {
-          localStorage.setItem(storeKey, "10");
+          localStorage.setItem(storeKey, "1");
           localStorage.setItem(lastMonthStoreKey, nowKey);
-          setCoinCount(10);
+          setCoinCount(1);
           return;
         }
 
@@ -367,7 +381,7 @@
       }
 
       async function moveItemToPending(it, method) {
-        const methodLabel = method === "wish_coin" ? "wish coin" : "please";
+        const methodLabel = method === "wish_coin" ? "wish_coin" : "please";
 
         const payloadCandidates = [
           {
